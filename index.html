@@ -1,0 +1,2381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Development Team Work Estimator</title>
+    <!-- Supabase Client Library -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .inline-group {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 10px;
+        }
+
+        .triple-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .list-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .list-item-info {
+            flex: 1;
+        }
+
+        .list-item-actions button {
+            width: auto;
+            padding: 5px 15px;
+            margin: 0;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-right: 5px;
+        }
+
+        .badge-frontend {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .badge-backend {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .badge-both {
+            background: #e8f5e9;
+            color: #388e3c;
+        }
+
+        .results {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 30px;
+        }
+
+        .results h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .result-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #667eea;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .result-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .result-value {
+            color: #212529;
+        }
+
+        .status-ok {
+            color: #28a745;
+            font-weight: 600;
+        }
+
+        .status-warning {
+            color: #ffc107;
+            font-weight: 600;
+        }
+
+        .status-error {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .work-breakdown {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e9ecef;
+            font-size: 14px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+
+        .calc-button {
+            background: #28a745;
+            font-size: 16px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .calc-button:hover {
+            background: #218838;
+        }
+
+        .input-error {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1) !important;
+        }
+
+        .error-message {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .slider-container {
+            margin: 20px 0;
+        }
+
+        .slider-wrapper {
+            position: relative;
+            margin: 15px 0;
+        }
+
+        .percentage-slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: linear-gradient(to right, #1976d2 0%, #1976d2 50%, #7b1fa2 50%, #7b1fa2 100%);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .percentage-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .percentage-slider::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid #667eea;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .slider-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-weight: 600;
+        }
+
+        .slider-label-left {
+            color: #1976d2;
+        }
+
+        .slider-label-right {
+            color: #7b1fa2;
+        }
+
+        .quick-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .quick-btn {
+            flex: 1;
+            padding: 8px;
+            background: white;
+            border: 2px solid #667eea;
+            color: #667eea;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .quick-btn:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .quick-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .work-plan-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            margin: -30px -30px 30px -30px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .work-plan-header h2 {
+            margin: 0;
+            font-size: 20px;
+        }
+
+        .work-plan-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .work-plan-controls button {
+            width: auto;
+            padding: 8px 16px;
+            margin: 0;
+            font-size: 14px;
+        }
+
+        .work-plan-list {
+            margin-bottom: 20px;
+        }
+
+        .work-plan-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 6px;
+            border: 2px solid #dee2e6;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+
+        .work-plan-item:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+        }
+
+        .work-plan-item.active {
+            border-color: #667eea;
+            background: #f8f9ff;
+        }
+
+        .work-plan-info {
+            flex: 1;
+        }
+
+        .work-plan-name {
+            font-weight: 600;
+            font-size: 16px;
+            color: #212529;
+            margin-bottom: 5px;
+        }
+
+        .work-plan-meta {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .work-plan-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .work-plan-actions button {
+            width: auto;
+            padding: 5px 12px;
+            font-size: 12px;
+            margin: 0;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-content h3 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #667eea;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .modal-buttons button {
+            flex: 1;
+        }
+
+        .btn-save {
+            background: #28a745;
+        }
+
+        .btn-save:hover {
+            background: #218838;
+        }
+
+        /* Authentication Styles */
+        .auth-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+        .auth-box {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .auth-box h2 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .auth-box p {
+            color: #6c757d;
+            margin-bottom: 30px;
+        }
+
+        .auth-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 10px;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .auth-tab.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .auth-form {
+            display: none;
+        }
+
+        .auth-form.active {
+            display: block;
+        }
+
+        .sync-status {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .sync-status.synced {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .sync-status.offline {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .sync-status.error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 16px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .share-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: #e7f3ff;
+            border-radius: 6px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Authentication Container -->
+    <div id="authContainer" class="auth-container" style="display: none;">
+        <div class="auth-box">
+            <h2>🔐 Sign In to Sync Your Plans</h2>
+            <p>Sign in to save your work plans to the cloud and access them from any device.</p>
+            
+            <div class="auth-tabs">
+                <div class="auth-tab active" onclick="switchAuthTab('signin')">Sign In</div>
+                <div class="auth-tab" onclick="switchAuthTab('signup')">Sign Up</div>
+            </div>
+
+            <div id="signinForm" class="auth-form active">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="signinEmail" placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="signinPassword" placeholder="Your password">
+                </div>
+                <button onclick="signIn()" style="width: 100%;">Sign In</button>
+                <button onclick="continueOffline()" class="btn-secondary" style="width: 100%; margin-top: 10px;">Continue Offline</button>
+            </div>
+
+            <div id="signupForm" class="auth-form">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="signupEmail" placeholder="your@email.com">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="signupPassword" placeholder="Choose a password (min 6 characters)">
+                </div>
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" id="signupPasswordConfirm" placeholder="Confirm your password">
+                </div>
+                <button onclick="signUp()" style="width: 100%;">Create Account</button>
+                <button onclick="continueOffline()" class="btn-secondary" style="width: 100%; margin-top: 10px;">Continue Offline</button>
+            </div>
+
+            <div id="authMessage" style="margin-top: 15px; padding: 10px; border-radius: 6px; display: none;"></div>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🚀 Development Team Work Estimator</h1>
+                <p>Plan your team's capacity and workload</p>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 10px;">
+                <div id="syncStatus" class="sync-status offline">
+                    <span>●</span> Offline Mode
+                </div>
+                <div id="userInfo" style="display: none;">
+                    <div class="user-info">
+                        <span id="userEmail"></span>
+                        <button onclick="signOut()" class="btn-secondary" style="padding: 5px 10px; margin: 0; width: auto;">Sign Out</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="content">
+            <!-- Work Plan Management -->
+            <div class="section" style="padding: 0; border: none; background: transparent;">
+                <div class="work-plan-header">
+                    <div>
+                        <h2>📋 Work Plans</h2>
+                        <div id="currentPlanIndicator" style="font-size: 14px; opacity: 0.9; margin-top: 5px;"></div>
+                    </div>
+                    <div class="work-plan-controls">
+                        <button onclick="exportWorkPlans()" class="btn-secondary">📤 Export</button>
+                        <button onclick="document.getElementById('importFile').click()" class="btn-secondary">📥 Import</button>
+                        <input type="file" id="importFile" accept=".json" style="display: none;" onchange="importWorkPlans(event)">
+                        <button onclick="showSaveModal()">💾 Save Current Plan</button>
+                        <button onclick="createNewPlan()" class="btn-secondary">➕ New Plan</button>
+                    </div>
+                </div>
+                <div style="padding: 20px;">
+                    <div id="workPlansList" class="work-plan-list"></div>
+                </div>
+            </div>
+
+            <!-- Time Period Section -->
+            <div class="section">
+                <h2>📅 Time Period</h2>
+                <div class="form-group">
+                    <label>Period Type</label>
+                    <select id="periodType" onchange="togglePeriodType()">
+                        <option value="duration" selected>Duration</option>
+                        <option value="daterange">Date Range</option>
+                    </select>
+                </div>
+                <div id="durationFields">
+                    <div class="inline-group">
+                        <div class="form-group">
+                            <label>Duration</label>
+                            <input type="number" id="duration" min="1" value="4" placeholder="Enter duration">
+                        </div>
+                        <div class="form-group">
+                            <label>Unit</label>
+                            <select id="durationUnit">
+                                <option value="days">Days</option>
+                                <option value="weeks" selected>Weeks</option>
+                                <option value="months">Months</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div id="dateRangeFields" style="display: none;">
+                    <div class="inline-group">
+                        <div class="form-group">
+                            <label>Start Date</label>
+                            <input type="date" id="startDate">
+                        </div>
+                        <div class="form-group">
+                            <label>End Date</label>
+                            <input type="date" id="endDate">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bug Fix / Maintenance Section -->
+            <div class="section">
+                <h2>🔧 Buffer Capacity</h2>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="includeBufferToggle" style="width: auto; margin-right: 10px;" onchange="updateBufferToggle()">
+                        <span>Include Bug Fix / Maintenance Leeway (20% of total capacity)</span>
+                    </label>
+                    <div id="bufferInfo" style="margin-top: 10px; padding: 10px; background: #fff3cd; border-left: 3px solid #ffc107; border-radius: 4px; display: none;">
+                        <small style="color: #856404;">
+                            <strong>ℹ️ Note:</strong> When enabled, 20% of your team's total capacity will be reserved for bug fixes and maintenance work, reducing available capacity for planned work items.
+                        </small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Developers Section -->
+            <div class="section">
+                <h2>👥 Team Members</h2>
+                <div class="form-group">
+                    <label>Developer Name</label>
+                    <input type="text" id="devName" placeholder="e.g., John Doe">
+                </div>
+                <div class="form-group">
+                    <label>Specialization</label>
+                    <select id="devType">
+                        <option value="frontend">Frontend</option>
+                        <option value="backend">Backend</option>
+                        <option value="both">Both (Fullstack)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Holiday Days</label>
+                    <input type="number" id="devHoliday" min="0" value="0" placeholder="Number of days off">
+                </div>
+                <button id="devButton" onclick="addDeveloper()">+ Add Developer</button>
+                
+                <div id="developersList" style="margin-top: 20px;"></div>
+            </div>
+
+            <!-- Work Items Section -->
+            <div class="section">
+                <h2>📋 Work Items</h2>
+                <div class="form-group">
+                    <label>Task Name</label>
+                    <input type="text" id="workName" placeholder="e.g., User Authentication System">
+                </div>
+                <div class="form-group">
+                    <label>Size</label>
+                    <select id="workSize">
+                        <option value="XS">XS (2 days)</option>
+                        <option value="S">S (1 week)</option>
+                        <option value="M">M (2 weeks)</option>
+                        <option value="L">L (4 weeks)</option>
+                        <option value="XL">XL (8 weeks)</option>
+                        <option value="XXL">XXL (12 weeks)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Assigned Developer (Optional)</label>
+                    <select id="workAssignee">
+                        <option value="">Unassigned (Auto-allocate)</option>
+                    </select>
+                </div>
+                <div class="slider-container">
+                    <label>Frontend vs Backend Split</label>
+                    <div class="quick-buttons">
+                        <button type="button" class="quick-btn" onclick="setPercentage(100, 0)">All Frontend</button>
+                        <button type="button" class="quick-btn active" onclick="setPercentage(50, 50)">50:50</button>
+                        <button type="button" class="quick-btn" onclick="setPercentage(0, 100)">All Backend</button>
+                    </div>
+                    <div class="slider-wrapper">
+                        <input type="range" id="percentageSlider" class="percentage-slider" min="0" max="100" value="50" oninput="updateSlider()">
+                        <div class="slider-labels">
+                            <span class="slider-label-left">Frontend: <span id="frontendPercent">50</span>%</span>
+                            <span class="slider-label-right">Backend: <span id="backendPercent">50</span>%</span>
+                        </div>
+                    </div>
+                    <input type="hidden" id="workFrontend" value="50">
+                    <input type="hidden" id="workBackend" value="50">
+                </div>
+                <button id="workButton" onclick="addWork()">+ Add Work Item</button>
+                
+                <div id="workList" style="margin-top: 20px;"></div>
+            </div>
+
+            <button class="calc-button btn-save" style="margin-bottom: 10px;" onclick="showSaveModal()">💾 Save Current Plan</button>
+            <button class="calc-button" onclick="calculateEstimate()">🔍 Calculate Estimate</button>
+
+            <!-- Results Section -->
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <!-- Save Work Plan Modal -->
+    <div id="saveModal" class="modal">
+        <div class="modal-content">
+            <h3>Save Work Plan</h3>
+            <div class="form-group">
+                <label>Plan Name</label>
+                <input type="text" id="planName" placeholder="e.g., Q1 2025 Sprint Plan">
+            </div>
+            <div id="shareToggleContainer" class="share-toggle" style="display: none;">
+                <input type="checkbox" id="shareToggle" style="width: auto; margin: 0;">
+                <label for="shareToggle" style="margin: 0; cursor: pointer;">
+                    <strong>🌐 Share with team</strong><br>
+                    <small style="color: #6c757d;">Allow other signed-in users to view this plan</small>
+                </label>
+            </div>
+            <div class="modal-buttons">
+                <button onclick="closeSaveModal()" class="btn-secondary">Cancel</button>
+                <button onclick="saveWorkPlan()" class="btn-save">Save Plan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rename Work Plan Modal -->
+    <div id="renameModal" class="modal">
+        <div class="modal-content">
+            <h3>Rename Work Plan</h3>
+            <div class="form-group">
+                <label>Plan Name</label>
+                <input type="text" id="renamePlanName" placeholder="Enter new name">
+            </div>
+            <div class="modal-buttons">
+                <button onclick="closeRenameModal()" class="btn-secondary">Cancel</button>
+                <button onclick="confirmRename()" class="btn-save">Rename</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase Configuration
+        const SUPABASE_URL = 'https://ivyndpwtwtgzbitkmoqs.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2eW5kcHd0d3RnemJpdGttb3FzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2ODYwNDgsImV4cCI6MjA3NzI2MjA0OH0.LsH1uMvCkkTFvJM5U7RE4JlxNBpWTmJ0wREetvU8pgM';
+        
+        // Initialize Supabase client
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        let currentUser = null;
+        let isOnlineMode = false;
+
+        // Check authentication status on load
+        async function checkAuthStatus() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user) {
+                currentUser = user;
+                isOnlineMode = true;
+                updateUIForAuthState(true);
+                await loadWorkPlansFromSupabase();
+            } else {
+                showAuthModal();
+            }
+        }
+
+        // Authentication Functions
+        function switchAuthTab(tab) {
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.auth-form').forEach(f => f.classList.remove('active'));
+            
+            if (tab === 'signin') {
+                document.querySelectorAll('.auth-tab')[0].classList.add('active');
+                document.getElementById('signinForm').classList.add('active');
+            } else {
+                document.querySelectorAll('.auth-tab')[1].classList.add('active');
+                document.getElementById('signupForm').classList.add('active');
+            }
+        }
+
+        function showAuthModal() {
+            document.getElementById('authContainer').style.display = 'flex';
+        }
+
+        function hideAuthModal() {
+            document.getElementById('authContainer').style.display = 'none';
+        }
+
+        async function signIn() {
+            const email = document.getElementById('signinEmail').value.trim();
+            const password = document.getElementById('signinPassword').value;
+
+            if (!email || !password) {
+                showAuthMessage('Please enter both email and password', 'error');
+                return;
+            }
+
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
+
+            if (error) {
+                showAuthMessage(error.message, 'error');
+            } else {
+                currentUser = data.user;
+                isOnlineMode = true;
+                hideAuthModal();
+                updateUIForAuthState(true);
+                await syncLocalToCloud();
+                await loadWorkPlansFromSupabase();
+                showAuthMessage('Signed in successfully!', 'success');
+            }
+        }
+
+        async function signUp() {
+            const email = document.getElementById('signupEmail').value.trim();
+            const password = document.getElementById('signupPassword').value;
+            const confirmPassword = document.getElementById('signupPasswordConfirm').value;
+
+            if (!email || !password || !confirmPassword) {
+                showAuthMessage('Please fill in all fields', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showAuthMessage('Password must be at least 6 characters', 'error');
+                return;
+            }
+
+            if (password !== confirmPassword) {
+                showAuthMessage('Passwords do not match', 'error');
+                return;
+            }
+
+            const { data, error } = await supabase.auth.signUp({
+                email: email,
+                password: password
+            });
+
+            if (error) {
+                showAuthMessage(error.message, 'error');
+            } else {
+                showAuthMessage('Account created! Please check your email to verify your account.', 'success');
+                setTimeout(() => {
+                    switchAuthTab('signin');
+                }, 3000);
+            }
+        }
+
+        async function signOut() {
+            const { error } = await supabase.auth.signOut();
+            if (!error) {
+                currentUser = null;
+                isOnlineMode = false;
+                updateUIForAuthState(false);
+                workPlans = [];
+                renderWorkPlans();
+                loadWorkPlansFromLocalStorage();
+                showAuthModal();
+            }
+        }
+
+        function continueOffline() {
+            hideAuthModal();
+            isOnlineMode = false;
+            updateUIForAuthState(false);
+            loadWorkPlansFromLocalStorage();
+        }
+
+        function showAuthMessage(message, type) {
+            const msgEl = document.getElementById('authMessage');
+            msgEl.textContent = message;
+            msgEl.style.display = 'block';
+            msgEl.style.background = type === 'error' ? '#f8d7da' : '#d4edda';
+            msgEl.style.color = type === 'error' ? '#721c24' : '#155724';
+            msgEl.style.border = `1px solid ${type === 'error' ? '#f5c6cb' : '#c3e6cb'}`;
+        }
+
+        function updateUIForAuthState(isSignedIn) {
+            const syncStatus = document.getElementById('syncStatus');
+            const userInfo = document.getElementById('userInfo');
+            const userEmail = document.getElementById('userEmail');
+            const shareToggleContainer = document.getElementById('shareToggleContainer');
+
+            if (isSignedIn && currentUser) {
+                syncStatus.className = 'sync-status synced';
+                syncStatus.innerHTML = '<span>●</span> Synced to Cloud';
+                userInfo.style.display = 'block';
+                userEmail.textContent = currentUser.email;
+                shareToggleContainer.style.display = 'flex';
+            } else {
+                syncStatus.className = 'sync-status offline';
+                syncStatus.innerHTML = '<span>●</span> Offline Mode';
+                userInfo.style.display = 'none';
+                shareToggleContainer.style.display = 'none';
+            }
+        }
+
+        // Sync Functions
+        async function syncLocalToCloud() {
+            if (!isOnlineMode || !currentUser) return;
+
+            const localPlans = JSON.parse(localStorage.getItem('workPlans') || '[]');
+            if (localPlans.length === 0) return;
+
+            for (const plan of localPlans) {
+                await saveWorkPlanToSupabase(plan);
+            }
+
+            localStorage.removeItem('workPlans');
+        }
+
+        async function loadWorkPlansFromSupabase() {
+            if (!isOnlineMode || !currentUser) return;
+
+            try {
+                // Load user's own plans
+                const { data: ownPlans, error: ownError } = await supabase
+                    .from('work_plans')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false });
+
+                if (ownError) throw ownError;
+
+                // Load shared plans
+                const { data: sharedPlans, error: sharedError } = await supabase
+                    .from('work_plans')
+                    .select('*')
+                    .eq('is_shared', true)
+                    .neq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false });
+
+                if (sharedError) throw sharedError;
+
+                workPlans = [...(ownPlans || []), ...(sharedPlans || [])];
+                renderWorkPlans();
+            } catch (error) {
+                console.error('Error loading plans from Supabase:', error);
+                showAuthMessage('Error loading plans from cloud', 'error');
+            }
+        }
+
+        async function saveWorkPlanToSupabase(planData) {
+            if (!isOnlineMode || !currentUser) {
+                saveToLocalStorage();
+                return;
+            }
+
+            try {
+                const isShared = document.getElementById('shareToggle')?.checked || false;
+                
+                const supabasePlan = {
+                    id: planData.id,
+                    user_id: currentUser.id,
+                    name: planData.name,
+                    saved_at: planData.savedAt,
+                    period_type: planData.periodType,
+                    duration: planData.duration,
+                    duration_unit: planData.durationUnit,
+                    start_date: planData.startDate,
+                    end_date: planData.endDate,
+                    include_buffer: planData.includeBuffer,
+                    developers: planData.developers,
+                    work_items: planData.workItems,
+                    summary: planData.summary,
+                    is_shared: isShared
+                };
+
+                const { error } = await supabase
+                    .from('work_plans')
+                    .upsert(supabasePlan);
+
+                if (error) throw error;
+
+                await loadWorkPlansFromSupabase();
+            } catch (error) {
+                console.error('Error saving to Supabase:', error);
+                showAuthMessage('Error saving to cloud, saved locally instead', 'error');
+                saveToLocalStorage();
+            }
+        }
+
+        async function deleteWorkPlanFromSupabase(planId) {
+            if (!isOnlineMode || !currentUser) {
+                return;
+            }
+
+            try {
+                const { error } = await supabase
+                    .from('work_plans')
+                    .delete()
+                    .eq('id', planId)
+                    .eq('user_id', currentUser.id);
+
+                if (error) throw error;
+            } catch (error) {
+                console.error('Error deleting from Supabase:', error);
+            }
+        }
+
+        function loadWorkPlansFromLocalStorage() {
+            const saved = localStorage.getItem('workPlans');
+            if (saved) {
+                workPlans = JSON.parse(saved);
+                renderWorkPlans();
+            }
+        }
+
+        let developers = [];
+        let workItems = [];
+        let editingDevId = null;
+        let editingWorkId = null;
+        let workPlans = [];
+        let currentPlanId = null;
+        let renamingPlanId = null;
+
+        const sizeInDays = {
+            'XS': 2,
+            'S': 5,
+            'M': 10,
+            'L': 20,
+            'XL': 40,
+            'XXL': 60
+        };
+
+        // NSW Public Holidays 2025
+        const nswPublicHolidays2025 = [
+            '2025-01-01', // New Year's Day
+            '2025-01-27', // Australia Day
+            '2025-04-18', // Good Friday
+            '2025-04-19', // Saturday before Easter Sunday
+            '2025-04-21', // Easter Monday
+            '2025-04-22', // Easter Tuesday (Additional day)
+            '2025-04-25', // Anzac Day
+            '2025-06-09', // Queen's Birthday
+            '2025-08-04', // Bank Holiday
+            '2025-10-06', // Labour Day
+            '2025-12-25', // Christmas Day
+            '2025-12-26'  // Boxing Day
+        ];
+
+        function isNSWPublicHoliday(date) {
+            const dateStr = date.toISOString().split('T')[0];
+            return nswPublicHolidays2025.includes(dateStr);
+        }
+
+        // Auto-update total percentage
+        function updateSlider() {
+            const sliderValue = parseInt(document.getElementById('percentageSlider').value);
+            const frontend = sliderValue;
+            const backend = 100 - sliderValue;
+            
+            document.getElementById('workFrontend').value = frontend;
+            document.getElementById('workBackend').value = backend;
+            document.getElementById('frontendPercent').textContent = frontend;
+            document.getElementById('backendPercent').textContent = backend;
+            
+            // Update slider background gradient
+            const slider = document.getElementById('percentageSlider');
+            slider.style.background = `linear-gradient(to right, #1976d2 0%, #1976d2 ${frontend}%, #7b1fa2 ${frontend}%, #7b1fa2 100%)`;
+        }
+
+        function setPercentage(frontend, backend) {
+            document.getElementById('percentageSlider').value = frontend;
+            updateSlider();
+            
+            // Update active button
+            document.querySelectorAll('.quick-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+        }
+
+        function updateDeveloperDropdown() {
+            const dropdown = document.getElementById('workAssignee');
+            dropdown.innerHTML = '<option value="">Unassigned (Auto-allocate)</option>';
+            
+            developers.forEach(dev => {
+                const option = document.createElement('option');
+                option.value = dev.id;
+                option.textContent = `${dev.name} (${dev.type})`;
+                dropdown.appendChild(option);
+            });
+        }
+
+        function updateBufferToggle() {
+            const toggle = document.getElementById('includeBufferToggle');
+            const info = document.getElementById('bufferInfo');
+            info.style.display = toggle.checked ? 'block' : 'none';
+        }
+
+        function togglePeriodType() {
+            const periodType = document.getElementById('periodType').value;
+            const durationFields = document.getElementById('durationFields');
+            const dateRangeFields = document.getElementById('dateRangeFields');
+            
+            if (periodType === 'duration') {
+                durationFields.style.display = 'block';
+                dateRangeFields.style.display = 'none';
+            } else {
+                durationFields.style.display = 'none';
+                dateRangeFields.style.display = 'block';
+            }
+        }
+
+        function calculateWorkingDays(startDate, endDate) {
+            let count = 0;
+            let currentDate = new Date(startDate);
+            endDate = new Date(endDate);
+            
+            while (currentDate <= endDate) {
+                const dayOfWeek = currentDate.getDay();
+                // Not weekend (Saturday=6, Sunday=0) and not a public holiday
+                if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isNSWPublicHoliday(currentDate)) {
+                    count++;
+                }
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            
+            return count;
+        }
+
+        function calculateWorkingDaysInDuration(duration, unit) {
+            // Start from today
+            let startDate = new Date();
+            let endDate = new Date();
+            
+            // Calculate end date based on duration and unit
+            if (unit === 'days') {
+                // For days, we need to find the date that is 'duration' working days away
+                let workingDaysFound = 0;
+                let currentDate = new Date(startDate);
+                while (workingDaysFound < duration) {
+                    currentDate.setDate(currentDate.getDate() + 1);
+                    const dayOfWeek = currentDate.getDay();
+                    if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isNSWPublicHoliday(currentDate)) {
+                        workingDaysFound++;
+                    }
+                }
+                endDate = currentDate;
+            } else if (unit === 'weeks') {
+                endDate.setDate(startDate.getDate() + (duration * 7));
+            } else if (unit === 'months') {
+                endDate.setMonth(startDate.getMonth() + duration);
+            }
+            
+            // Now count actual working days between start and end
+            let count = 0;
+            let currentDate = new Date(startDate);
+            
+            while (currentDate < endDate) {
+                currentDate.setDate(currentDate.getDate() + 1);
+                const dayOfWeek = currentDate.getDay();
+                if (dayOfWeek !== 0 && dayOfWeek !== 6 && !isNSWPublicHoliday(currentDate)) {
+                    count++;
+                }
+            }
+            
+            return count;
+        }
+
+        function updateTotal() {
+            const frontend = parseInt(document.getElementById('workFrontend').value) || 0;
+            const backend = parseInt(document.getElementById('workBackend').value) || 0;
+            document.getElementById('workTotal').value = frontend + backend;
+        }
+
+        function validatePercentages() {
+            updateTotal();
+            const frontend = parseInt(document.getElementById('workFrontend').value) || 0;
+            const backend = parseInt(document.getElementById('workBackend').value) || 0;
+            const total = frontend + backend;
+            
+            const frontendInput = document.getElementById('workFrontend');
+            const backendInput = document.getElementById('workBackend');
+            const errorMessage = document.getElementById('percentageError');
+            
+            if (total !== 100) {
+                frontendInput.classList.add('input-error');
+                backendInput.classList.add('input-error');
+                errorMessage.classList.add('show');
+                return false;
+            } else {
+                frontendInput.classList.remove('input-error');
+                backendInput.classList.remove('input-error');
+                errorMessage.classList.remove('show');
+                return true;
+            }
+        }
+
+        function addDeveloper() {
+            const name = document.getElementById('devName').value.trim();
+            const type = document.getElementById('devType').value;
+            const holiday = parseInt(document.getElementById('devHoliday').value) || 0;
+
+            if (!name) {
+                alert('Please enter a developer name');
+                return;
+            }
+
+            if (editingDevId) {
+                // Update existing developer
+                const index = developers.findIndex(d => d.id === editingDevId);
+                if (index !== -1) {
+                    developers[index] = { name, type, holiday, id: editingDevId };
+                }
+                editingDevId = null;
+                document.getElementById('devButton').textContent = '+ Add Developer';
+            } else {
+                // Add new developer
+                developers.push({ name, type, holiday, id: Date.now() });
+            }
+            
+            document.getElementById('devName').value = '';
+            document.getElementById('devType').value = 'frontend';
+            document.getElementById('devHoliday').value = '0';
+            
+            renderDevelopers();
+            updateDeveloperDropdown();
+        }
+
+        function editDeveloper(id) {
+            const dev = developers.find(d => d.id === id);
+            if (!dev) return;
+            
+            document.getElementById('devName').value = dev.name;
+            document.getElementById('devType').value = dev.type;
+            document.getElementById('devHoliday').value = dev.holiday;
+            
+            editingDevId = id;
+            document.getElementById('devButton').textContent = 'Update Developer';
+            
+            // Scroll to form
+            document.getElementById('devName').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function removeDeveloper(id) {
+            developers = developers.filter(d => d.id !== id);
+            if (editingDevId === id) {
+                editingDevId = null;
+                document.getElementById('devButton').textContent = '+ Add Developer';
+                document.getElementById('devName').value = '';
+                document.getElementById('devHoliday').value = '0';
+            }
+            renderDevelopers();
+            updateDeveloperDropdown();
+        }
+
+        function renderDevelopers() {
+            const list = document.getElementById('developersList');
+            
+            if (developers.length === 0) {
+                list.innerHTML = '<div class="empty-state">No developers added yet</div>';
+                return;
+            }
+
+            list.innerHTML = developers.map(dev => `
+                <div class="list-item">
+                    <div class="list-item-info">
+                        <strong>${dev.name}</strong>
+                        <span class="badge badge-${dev.type}">${dev.type.toUpperCase()}</span>
+                        ${dev.holiday > 0 ? `<span style="color: #6c757d;">• ${dev.holiday} days holiday</span>` : ''}
+                    </div>
+                    <div class="list-item-actions">
+                        <button class="btn-secondary" onclick="editDeveloper(${dev.id})" style="margin-right: 5px;">Edit</button>
+                        <button class="btn-danger" onclick="removeDeveloper(${dev.id})">Remove</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function addWork() {
+            const name = document.getElementById('workName').value.trim();
+            const size = document.getElementById('workSize').value;
+            const frontend = parseInt(document.getElementById('workFrontend').value) || 0;
+            const backend = parseInt(document.getElementById('workBackend').value) || 0;
+            const assigneeId = document.getElementById('workAssignee').value;
+
+            if (!name) {
+                alert('Please enter a task name');
+                return;
+            }
+
+            if (editingWorkId) {
+                // Update existing work item
+                const index = workItems.findIndex(w => w.id === editingWorkId);
+                if (index !== -1) {
+                    workItems[index] = { name, size, frontend, backend, assigneeId, id: editingWorkId };
+                }
+                editingWorkId = null;
+                document.getElementById('workButton').textContent = '+ Add Work Item';
+            } else {
+                // Add new work item
+                workItems.push({ name, size, frontend, backend, assigneeId, id: Date.now() });
+            }
+            
+            document.getElementById('workName').value = '';
+            document.getElementById('workSize').value = 'XS';
+            document.getElementById('workAssignee').value = '';
+            setPercentage(50, 50);
+            
+            renderWork();
+        }
+
+        function editWork(id) {
+            const work = workItems.find(w => w.id === id);
+            if (!work) return;
+            
+            document.getElementById('workName').value = work.name;
+            document.getElementById('workSize').value = work.size;
+            document.getElementById('workAssignee').value = work.assigneeId || '';
+            
+            // Update slider
+            document.getElementById('percentageSlider').value = work.frontend;
+            updateSlider();
+            
+            editingWorkId = id;
+            document.getElementById('workButton').textContent = 'Update Work Item';
+            
+            // Scroll to form
+            document.getElementById('workName').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        function removeWork(id) {
+            workItems = workItems.filter(w => w.id !== id);
+            if (editingWorkId === id) {
+                editingWorkId = null;
+                document.getElementById('workButton').textContent = '+ Add Work Item';
+                document.getElementById('workName').value = '';
+                document.getElementById('workSize').value = 'XS';
+                document.getElementById('workAssignee').value = '';
+                setPercentage(50, 50);
+            }
+            renderWork();
+        }
+
+        function renderWork() {
+            const list = document.getElementById('workList');
+            
+            if (workItems.length === 0) {
+                list.innerHTML = '<div class="empty-state">No work items added yet</div>';
+                return;
+            }
+
+            list.innerHTML = workItems.map(work => {
+                const assignee = work.assigneeId ? developers.find(d => d.id == work.assigneeId) : null;
+                const assigneeText = assignee ? `• Assigned to: ${assignee.name}` : '';
+                
+                return `
+                    <div class="list-item">
+                        <div class="list-item-info">
+                            <strong>${work.name}</strong>
+                            <span class="badge badge-frontend">${work.size} (${sizeInDays[work.size]}d)</span>
+                            <span style="color: #6c757d;">• FE: ${work.frontend}% | BE: ${work.backend}% ${assigneeText}</span>
+                        </div>
+                        <div class="list-item-actions">
+                            <button class="btn-secondary" onclick="editWork(${work.id})" style="margin-right: 5px;">Edit</button>
+                            <button class="btn-danger" onclick="removeWork(${work.id})">Remove</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Work Plan Management Functions
+        function loadWorkPlans() {
+            // This will be called on page load, but actual loading happens in checkAuthStatus
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('workPlans', JSON.stringify(workPlans));
+        }
+
+        function showSaveModal() {
+            if (developers.length === 0 && workItems.length === 0) {
+                alert('Please add at least one developer or work item before saving');
+                return;
+            }
+            
+            // Pre-fill with current plan name if editing existing plan
+            const currentPlan = workPlans.find(p => p.id === currentPlanId);
+            document.getElementById('planName').value = currentPlan ? currentPlan.name : '';
+            
+            // Restore share toggle state if editing
+            if (currentPlan && currentPlan.is_shared !== undefined) {
+                document.getElementById('shareToggle').checked = currentPlan.is_shared;
+            } else {
+                document.getElementById('shareToggle').checked = false;
+            }
+            
+            document.getElementById('saveModal').classList.add('show');
+        }
+
+        function closeSaveModal() {
+            document.getElementById('saveModal').classList.remove('show');
+            document.getElementById('planName').value = '';
+        }
+
+        function saveWorkPlan() {
+            const planName = document.getElementById('planName').value.trim();
+            
+            if (!planName) {
+                alert('Please enter a plan name');
+                return;
+            }
+
+            // Get buffer toggle state
+            const includeBuffer = document.getElementById('includeBufferToggle').checked;
+
+            // Calculate capacity analysis for the summary
+            const periodType = document.getElementById('periodType').value;
+            let totalDays;
+            let displayText;
+
+            if (periodType === 'duration') {
+                const duration = parseInt(document.getElementById('duration').value);
+                const unit = document.getElementById('durationUnit').value;
+                totalDays = calculateWorkingDaysInDuration(duration, unit);
+                displayText = `${duration} ${unit} (${totalDays} working days)`;
+            } else {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                if (startDate && endDate) {
+                    totalDays = calculateWorkingDays(startDate, endDate);
+                    displayText = `${startDate} to ${endDate} (${totalDays} working days)`;
+                } else {
+                    totalDays = 0;
+                    displayText = 'No dates set';
+                }
+            }
+
+            // Calculate team capacity
+            let totalDeveloperCapacity = 0;
+            let frontendCapacity = 0;
+            let backendCapacity = 0;
+            let fullstackCapacity = 0;
+
+            developers.forEach(dev => {
+                const availableDays = Math.max(0, totalDays - dev.holiday);
+                totalDeveloperCapacity += availableDays;
+                
+                if (dev.type === 'frontend') {
+                    frontendCapacity += availableDays;
+                } else if (dev.type === 'backend') {
+                    backendCapacity += availableDays;
+                } else {
+                    fullstackCapacity += availableDays;
+                }
+            });
+
+            // Apply buffer if enabled
+            let bufferDays = 0;
+            let adjustedTotalCapacity = totalDeveloperCapacity;
+            let adjustedFrontendCapacity = frontendCapacity;
+            let adjustedBackendCapacity = backendCapacity;
+            let adjustedFullstackCapacity = fullstackCapacity;
+
+            if (includeBuffer) {
+                bufferDays = totalDeveloperCapacity * 0.2;
+                adjustedTotalCapacity = totalDeveloperCapacity * 0.8;
+                adjustedFrontendCapacity = frontendCapacity * 0.8;
+                adjustedBackendCapacity = backendCapacity * 0.8;
+                adjustedFullstackCapacity = fullstackCapacity * 0.8;
+            }
+
+            // Calculate work required
+            let requiredFrontend = 0;
+            let requiredBackend = 0;
+            let totalRequired = 0;
+
+            workItems.forEach(work => {
+                const days = sizeInDays[work.size];
+                requiredFrontend += days * (work.frontend / 100);
+                requiredBackend += days * (work.backend / 100);
+                totalRequired += days;
+            });
+
+            // Calculate unassigned work
+            let unassignedFrontend = 0;
+            let unassignedBackend = 0;
+
+            workItems.forEach(work => {
+                const days = sizeInDays[work.size];
+                const frontendDays = days * (work.frontend / 100);
+                const backendDays = days * (work.backend / 100);
+                
+                if (!work.assigneeId) {
+                    unassignedFrontend += frontendDays;
+                    unassignedBackend += backendDays;
+                }
+            });
+
+            // Determine capacity status and reasons
+            const frontendShortfall = unassignedFrontend - (adjustedFrontendCapacity + adjustedFullstackCapacity);
+            const backendShortfall = unassignedBackend - (adjustedBackendCapacity + adjustedFullstackCapacity);
+            const totalShortfall = totalRequired - adjustedTotalCapacity;
+            
+            // Calculate spare days (positive means spare capacity, negative means shortage)
+            const totalSpare = adjustedTotalCapacity - totalRequired;
+            const frontendSpare = (adjustedFrontendCapacity + adjustedFullstackCapacity) - unassignedFrontend;
+            const backendSpare = (adjustedBackendCapacity + adjustedFullstackCapacity) - unassignedBackend;
+
+            let capacityExceededReasons = [];
+            
+            if (frontendShortfall > 0) {
+                capacityExceededReasons.push(`Frontend work exceeds capacity by ${frontendShortfall.toFixed(1)} days`);
+            }
+            if (backendShortfall > 0) {
+                capacityExceededReasons.push(`Backend work exceeds capacity by ${backendShortfall.toFixed(1)} days`);
+            }
+            if (totalShortfall > 0 && capacityExceededReasons.length === 0) {
+                capacityExceededReasons.push(`Total work exceeds capacity by ${totalShortfall.toFixed(1)} days`);
+            }
+
+            const planData = {
+                id: currentPlanId || Date.now(),
+                name: planName,
+                savedAt: new Date().toISOString(),
+                periodType: document.getElementById('periodType').value,
+                duration: document.getElementById('duration').value,
+                durationUnit: document.getElementById('durationUnit').value,
+                startDate: document.getElementById('startDate').value,
+                endDate: document.getElementById('endDate').value,
+                includeBuffer: includeBuffer,
+                developers: JSON.parse(JSON.stringify(developers)),
+                workItems: JSON.parse(JSON.stringify(workItems)),
+                summary: {
+                    timePeriod: displayText,
+                    totalCapacity: totalDeveloperCapacity,
+                    adjustedTotalCapacity: adjustedTotalCapacity,
+                    frontendCapacity: frontendCapacity,
+                    backendCapacity: backendCapacity,
+                    fullstackCapacity: fullstackCapacity,
+                    adjustedFrontendCapacity: adjustedFrontendCapacity,
+                    adjustedBackendCapacity: adjustedBackendCapacity,
+                    adjustedFullstackCapacity: adjustedFullstackCapacity,
+                    bufferDays: bufferDays,
+                    totalRequired: totalRequired,
+                    requiredFrontend: requiredFrontend,
+                    requiredBackend: requiredBackend,
+                    unassignedFrontend: unassignedFrontend,
+                    unassignedBackend: unassignedBackend,
+                    totalSpare: totalSpare,
+                    frontendSpare: frontendSpare,
+                    backendSpare: backendSpare,
+                    capacityExceededReasons: capacityExceededReasons
+                }
+            };
+
+            const isUpdate = currentPlanId && workPlans.find(p => p.id === currentPlanId);
+
+            if (currentPlanId) {
+                // Update existing plan
+                const index = workPlans.findIndex(p => p.id === currentPlanId);
+                if (index !== -1) {
+                    workPlans[index] = planData;
+                }
+            } else {
+                // Create new plan
+                workPlans.push(planData);
+                currentPlanId = planData.id;
+            }
+
+            // Save to Supabase or localStorage
+            if (isOnlineMode && currentUser) {
+                await saveWorkPlanToSupabase(planData);
+            } else {
+                saveToLocalStorage();
+                renderWorkPlans();
+            }
+            
+            closeSaveModal();
+            
+            alert(isUpdate ? 'Work plan updated successfully!' : 'Work plan saved successfully!');
+        }
+
+        function createNewPlan() {
+            if (developers.length > 0 || workItems.length > 0) {
+                if (!confirm('This will clear the current plan. Make sure you have saved it if needed. Continue?')) {
+                    return;
+                }
+            }
+            
+            // Clear current data
+            developers = [];
+            workItems = [];
+            currentPlanId = null;
+            editingDevId = null;
+            editingWorkId = null;
+            
+            // Reset form
+            document.getElementById('periodType').value = 'duration';
+            document.getElementById('duration').value = '4';
+            document.getElementById('durationUnit').value = 'weeks';
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('includeBufferToggle').checked = false;
+            togglePeriodType();
+            updateBufferToggle();
+            
+            renderDevelopers();
+            renderWork();
+            updateDeveloperDropdown();
+            document.getElementById('results').innerHTML = '';
+            renderWorkPlans();
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function loadWorkPlan(planId) {
+            const plan = workPlans.find(p => p.id === planId);
+            if (!plan) return;
+            
+            currentPlanId = planId;
+            
+            // Load period settings (handle both snake_case and camelCase)
+            document.getElementById('periodType').value = plan.period_type || plan.periodType;
+            document.getElementById('duration').value = plan.duration;
+            document.getElementById('durationUnit').value = plan.duration_unit || plan.durationUnit;
+            document.getElementById('startDate').value = plan.start_date || plan.startDate || '';
+            document.getElementById('endDate').value = plan.end_date || plan.endDate || '';
+            togglePeriodType();
+            
+            // Load buffer toggle
+            document.getElementById('includeBufferToggle').checked = plan.include_buffer || plan.includeBuffer || false;
+            updateBufferToggle();
+            
+            // Load developers and work items (handle both snake_case and camelCase)
+            developers = JSON.parse(JSON.stringify(plan.developers));
+            workItems = JSON.parse(JSON.stringify(plan.work_items || plan.workItems));
+            
+            renderDevelopers();
+            renderWork();
+            updateDeveloperDropdown();
+            renderWorkPlans();
+            
+            // Clear results
+            document.getElementById('results').innerHTML = '';
+            
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function showRenameModal(planId) {
+            const plan = workPlans.find(p => p.id === planId);
+            if (!plan) return;
+            
+            renamingPlanId = planId;
+            document.getElementById('renamePlanName').value = plan.name;
+            document.getElementById('renameModal').classList.add('show');
+        }
+
+        function closeRenameModal() {
+            document.getElementById('renameModal').classList.remove('show');
+            document.getElementById('renamePlanName').value = '';
+            renamingPlanId = null;
+        }
+
+        function confirmRename() {
+            const newName = document.getElementById('renamePlanName').value.trim();
+            
+            if (!newName) {
+                alert('Please enter a plan name');
+                return;
+            }
+            
+            const plan = workPlans.find(p => p.id === renamingPlanId);
+            if (plan) {
+                plan.name = newName;
+                saveToLocalStorage();
+                renderWorkPlans();
+            }
+            
+            closeRenameModal();
+        }
+
+        function duplicateWorkPlan(planId) {
+            const plan = workPlans.find(p => p.id === planId);
+            if (!plan) return;
+            
+            const newPlan = JSON.parse(JSON.stringify(plan));
+            newPlan.id = Date.now();
+            newPlan.name = plan.name + ' (Copy)';
+            newPlan.savedAt = new Date().toISOString();
+            
+            workPlans.push(newPlan);
+            saveToLocalStorage();
+            renderWorkPlans();
+        }
+
+        function deleteWorkPlan(planId) {
+            const plan = workPlans.find(p => p.id === planId);
+            if (!plan) return;
+            
+            if (!confirm(`Are you sure you want to delete "${plan.name}"?`)) {
+                return;
+            }
+            
+            workPlans = workPlans.filter(p => p.id !== planId);
+            
+            if (currentPlanId === planId) {
+                currentPlanId = null;
+            }
+            
+            // Delete from Supabase or localStorage
+            if (isOnlineMode && currentUser) {
+                deleteWorkPlanFromSupabase(planId);
+            } else {
+                saveToLocalStorage();
+            }
+            
+            renderWorkPlans();
+        }
+
+        function renderWorkPlans() {
+            const list = document.getElementById('workPlansList');
+            const indicator = document.getElementById('currentPlanIndicator');
+            
+            // Update current plan indicator
+            const currentPlan = workPlans.find(p => p.id === currentPlanId);
+            if (currentPlan) {
+                indicator.textContent = `Currently editing: ${currentPlan.name}`;
+            } else {
+                indicator.textContent = 'Unsaved plan';
+            }
+            
+            if (workPlans.length === 0) {
+                list.innerHTML = '<div class="empty-state">No saved work plans yet. Create your first plan!</div>';
+                return;
+            }
+            
+            list.innerHTML = workPlans.map(plan => {
+                const savedDate = new Date(plan.saved_at || plan.savedAt);
+                const dateStr = savedDate.toLocaleDateString() + ' ' + savedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const isActive = plan.id === currentPlanId;
+                const isOwner = currentUser && plan.user_id === currentUser.id;
+                const isShared = plan.is_shared || false;
+                
+                // Get summary data
+                const summary = plan.summary || {};
+                const hasCapacity = summary.totalCapacity !== undefined;
+                const includeBuffer = plan.include_buffer || plan.includeBuffer || false;
+                
+                // Determine status
+                let capacityStatus = '';
+                let statusClass = '';
+                let exceededReasons = '';
+                
+                if (hasCapacity) {
+                    const adjustedFrontendCap = summary.adjustedFrontendCapacity || summary.frontendCapacity || 0;
+                    const adjustedBackendCap = summary.adjustedBackendCapacity || summary.backendCapacity || 0;
+                    const adjustedFullstackCap = summary.adjustedFullstackCapacity || summary.fullstackCapacity || 0;
+                    const adjustedTotalCap = summary.adjustedTotalCapacity || summary.totalCapacity || 0;
+                    
+                    // Simple check for capacity
+                    const frontendOk = (summary.unassignedFrontend || 0) <= (adjustedFrontendCap + adjustedFullstackCap);
+                    const backendOk = (summary.unassignedBackend || 0) <= (adjustedBackendCap + adjustedFullstackCap);
+                    const totalOk = (summary.totalRequired || 0) <= adjustedTotalCap;
+                    
+                    if (frontendOk && backendOk && totalOk) {
+                        capacityStatus = '✅ Sufficient Capacity';
+                        statusClass = 'status-ok';
+                    } else {
+                        capacityStatus = '❌ Capacity Exceeded';
+                        statusClass = 'status-error';
+                        
+                        // Show reasons
+                        if (summary.capacityExceededReasons && summary.capacityExceededReasons.length > 0) {
+                            exceededReasons = '<div style="margin-top: 5px; padding: 8px; background: #fff3cd; border-left: 3px solid #dc3545; border-radius: 4px;">' +
+                                '<strong style="color: #721c24;">Why exceeded:</strong><br>' +
+                                '<ul style="margin: 5px 0 0 20px; padding: 0; color: #721c24;">' +
+                                summary.capacityExceededReasons.map(reason => `<li>${reason}</li>`).join('') +
+                                '</ul></div>';
+                        }
+                    }
+                }
+                
+                // Format capacity display
+                const capacityDisplay = hasCapacity ? (
+                    includeBuffer 
+                        ? `${summary.adjustedTotalCapacity.toFixed(1)} days (${summary.totalCapacity} - ${summary.bufferDays.toFixed(1)} buffer)`
+                        : `${summary.totalCapacity} days`
+                ) : 'N/A';
+                
+                return `
+                    <div class="work-plan-item ${isActive ? 'active' : ''}" onclick="loadWorkPlan(${plan.id})">
+                        <div class="work-plan-info">
+                            <div class="work-plan-name">
+                                ${plan.name} ${isActive ? '✓' : ''}
+                                ${includeBuffer ? '<span class="badge" style="background: #fff3cd; color: #856404; margin-left: 8px;">🔧 20% Buffer</span>' : ''}
+                                ${isShared ? '<span class="badge" style="background: #e7f3ff; color: #1976d2; margin-left: 8px;">🌐 Shared</span>' : ''}
+                                ${!isOwner ? '<span class="badge" style="background: #f3e5f5; color: #7b1fa2; margin-left: 8px;">👁️ View Only</span>' : ''}
+                            </div>
+                            <div class="work-plan-meta">
+                                <strong>${plan.developers.length} developers</strong> • 
+                                <strong>${plan.work_items ? plan.work_items.length : plan.workItems.length} work items</strong> • 
+                                Saved: ${dateStr}
+                            </div>
+                            ${hasCapacity ? `
+                                <div class="work-breakdown" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #dee2e6;">
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; font-size: 13px;">
+                                        <div>
+                                            <strong>📅 Time Period:</strong><br>
+                                            ${summary.timePeriod}
+                                        </div>
+                                        <div>
+                                            <strong>👥 Team Capacity:</strong><br>
+                                            ${capacityDisplay}
+                                            ${summary.fullstackCapacity > 0 ? `<br><span style="color: #6c757d;">(FE: ${(includeBuffer ? summary.adjustedFrontendCapacity : summary.frontendCapacity).toFixed(1)}d, BE: ${(includeBuffer ? summary.adjustedBackendCapacity : summary.backendCapacity).toFixed(1)}d, FS: ${(includeBuffer ? summary.adjustedFullstackCapacity : summary.fullstackCapacity).toFixed(1)}d)</span>` : `<br><span style="color: #6c757d;">(FE: ${(includeBuffer ? summary.adjustedFrontendCapacity : summary.frontendCapacity).toFixed(1)}d, BE: ${(includeBuffer ? summary.adjustedBackendCapacity : summary.backendCapacity).toFixed(1)}d)</span>`}
+                                        </div>
+                                        <div>
+                                            <strong>📋 Work Required:</strong><br>
+                                            ${summary.totalRequired.toFixed(1)} days total
+                                            <br><span style="color: #6c757d;">(FE: ${summary.requiredFrontend.toFixed(1)}d, BE: ${summary.requiredBackend.toFixed(1)}d)</span>
+                                        </div>
+                                        <div>
+                                            <strong>🎯 Unassigned Work:</strong><br>
+                                            FE: ${summary.unassignedFrontend.toFixed(1)}d | BE: ${summary.unassignedBackend.toFixed(1)}d
+                                            <br><span class="${statusClass}">${capacityStatus}</span>
+                                        </div>
+                                        <div>
+                                            <strong>💼 Spare Capacity:</strong><br>
+                                            ${summary.totalSpare >= 0 
+                                                ? `<span style="color: #28a745;">+${summary.totalSpare.toFixed(1)} days available</span>` 
+                                                : `<span style="color: #dc3545;">${summary.totalSpare.toFixed(1)} days (overallocated)</span>`
+                                            }
+                                            <br><span style="color: #6c757d; font-size: 12px;">FE: ${summary.frontendSpare >= 0 ? '+' : ''}${summary.frontendSpare.toFixed(1)}d | BE: ${summary.backendSpare >= 0 ? '+' : ''}${summary.backendSpare.toFixed(1)}d</span>
+                                        </div>
+                                    </div>
+                                    ${exceededReasons}
+                                </div>
+                            ` : ''}
+                        </div>
+                        <div class="work-plan-actions" onclick="event.stopPropagation()">
+                            ${isOwner ? `
+                                <button class="btn-secondary" onclick="showRenameModal(${plan.id})">Rename</button>
+                                <button class="btn-secondary" onclick="duplicateWorkPlan(${plan.id})">Duplicate</button>
+                                <button class="btn-danger" onclick="deleteWorkPlan(${plan.id})">Delete</button>
+                            ` : `
+                                <button class="btn-secondary" onclick="duplicateWorkPlan(${plan.id})">Duplicate</button>
+                            `}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function exportWorkPlans() {
+            if (workPlans.length === 0) {
+                alert('No work plans to export');
+                return;
+            }
+            
+            const dataStr = JSON.stringify(workPlans, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `work-plans-${new Date().toISOString().split('T')[0]}.json`;
+            link.click();
+            URL.revokeObjectURL(url);
+            
+            alert(`Exported ${workPlans.length} work plan(s) successfully!`);
+        }
+
+        function importWorkPlans(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const importedPlans = JSON.parse(e.target.result);
+                    
+                    if (!Array.isArray(importedPlans)) {
+                        throw new Error('Invalid file format');
+                    }
+                    
+                    const validPlans = importedPlans.filter(plan => 
+                        plan.name && plan.developers && plan.workItems
+                    );
+                    
+                    if (validPlans.length === 0) {
+                        alert('No valid work plans found in the file');
+                        return;
+                    }
+                    
+                    // Ask user if they want to merge or replace
+                    let shouldReplace = false;
+                    if (workPlans.length > 0) {
+                        shouldReplace = confirm(
+                            `You have ${workPlans.length} existing plan(s). Do you want to:\n\n` +
+                            `OK = Replace all existing plans\n` +
+                            `Cancel = Merge with existing plans`
+                        );
+                    }
+                    
+                    if (shouldReplace) {
+                        workPlans = validPlans;
+                    } else {
+                        // Merge - update IDs to avoid conflicts
+                        const maxId = Math.max(0, ...workPlans.map(p => p.id));
+                        validPlans.forEach((plan, index) => {
+                            plan.id = maxId + index + 1;
+                        });
+                        workPlans = [...workPlans, ...validPlans];
+                    }
+                    
+                    saveToLocalStorage();
+                    renderWorkPlans();
+                    
+                    alert(`Successfully imported ${validPlans.length} work plan(s)!`);
+                } catch (error) {
+                    alert('Error importing file: ' + error.message);
+                }
+            };
+            reader.readAsText(file);
+            
+            // Reset file input
+            event.target.value = '';
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            updateSlider();
+            checkAuthStatus();
+        });
+
+        function calculateEstimate() {
+            if (developers.length === 0) {
+                alert('Please add at least one developer');
+                return;
+            }
+
+            if (workItems.length === 0) {
+                alert('Please add at least one work item');
+                return;
+            }
+
+            const periodType = document.getElementById('periodType').value;
+            const includeBuffer = document.getElementById('includeBufferToggle').checked;
+            let totalDays;
+            let displayText;
+
+            if (periodType === 'duration') {
+                const duration = parseInt(document.getElementById('duration').value);
+                const unit = document.getElementById('durationUnit').value;
+
+                // Convert duration to actual working days (excluding weekends and NSW holidays)
+                totalDays = calculateWorkingDaysInDuration(duration, unit);
+                
+                displayText = `${duration} ${unit} (${totalDays} working days)`;
+            } else {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+                
+                if (!startDate || !endDate) {
+                    alert('Please select both start and end dates');
+                    return;
+                }
+                
+                if (new Date(startDate) >= new Date(endDate)) {
+                    alert('End date must be after start date');
+                    return;
+                }
+                
+                totalDays = calculateWorkingDays(startDate, endDate);
+                displayText = `${startDate} to ${endDate} (${totalDays} working days)`;
+            }
+
+            // Create a capacity tracker for each developer
+            const devCapacity = {};
+            developers.forEach(dev => {
+                const availableDays = Math.max(0, totalDays - dev.holiday);
+                devCapacity[dev.id] = {
+                    total: availableDays,
+                    remaining: availableDays,
+                    type: dev.type,
+                    name: dev.name,
+                    assigned: []
+                };
+            });
+
+            // Calculate total capacity before buffer
+            const totalDeveloperCapacityBeforeBuffer = Object.values(devCapacity).reduce((sum, dev) => sum + dev.total, 0);
+            
+            // Apply buffer if enabled
+            let bufferDays = 0;
+            if (includeBuffer) {
+                bufferDays = totalDeveloperCapacityBeforeBuffer * 0.2;
+                // Reduce each developer's capacity by 20%
+                Object.values(devCapacity).forEach(dev => {
+                    dev.total = dev.total * 0.8;
+                    dev.remaining = dev.remaining * 0.8;
+                });
+            }
+
+            // First pass: Allocate assigned tasks
+            let requiredFrontend = 0;
+            let requiredBackend = 0;
+            let unassignedFrontend = 0;
+            let unassignedBackend = 0;
+
+            workItems.forEach(work => {
+                const days = sizeInDays[work.size];
+                const frontendDays = days * (work.frontend / 100);
+                const backendDays = days * (work.backend / 100);
+                
+                requiredFrontend += frontendDays;
+                requiredBackend += backendDays;
+
+                if (work.assigneeId && devCapacity[work.assigneeId]) {
+                    // Task is assigned to a specific developer
+                    const dev = devCapacity[work.assigneeId];
+                    const taskDays = Math.min(days, dev.remaining);
+                    dev.remaining -= taskDays;
+                    dev.assigned.push({
+                        name: work.name,
+                        days: days,
+                        allocated: taskDays
+                    });
+                    
+                    // If fully allocated to assignee, don't count in unassigned pool
+                    if (taskDays >= days) {
+                        // Task fully assigned
+                    } else {
+                        // Partial assignment - rest goes to general pool
+                        const remainingDays = days - taskDays;
+                        if (work.frontend > 0) {
+                            unassignedFrontend += remainingDays * (work.frontend / 100);
+                        }
+                        if (work.backend > 0) {
+                            unassignedBackend += remainingDays * (work.backend / 100);
+                        }
+                    }
+                } else {
+                    // Unassigned task - goes to general pool
+                    unassignedFrontend += frontendDays;
+                    unassignedBackend += backendDays;
+                }
+            });
+
+            // Calculate available capacity for unassigned work
+            let frontendCapacity = 0;
+            let backendCapacity = 0;
+            let fullstackCapacity = 0;
+
+            Object.values(devCapacity).forEach(dev => {
+                if (dev.type === 'frontend') {
+                    frontendCapacity += dev.remaining;
+                } else if (dev.type === 'backend') {
+                    backendCapacity += dev.remaining;
+                } else { // both
+                    fullstackCapacity += dev.remaining;
+                }
+            });
+
+            // Allocate fullstack developers to where they're needed most
+            let allocatedToFrontend = 0;
+            let allocatedToBackend = 0;
+
+            let frontendShortfall = Math.max(0, unassignedFrontend - frontendCapacity);
+            let backendShortfall = Math.max(0, unassignedBackend - backendCapacity);
+
+            if (frontendShortfall > 0 || backendShortfall > 0) {
+                if (frontendShortfall >= backendShortfall) {
+                    allocatedToFrontend = Math.min(frontendShortfall, fullstackCapacity);
+                    allocatedToBackend = Math.min(backendShortfall, fullstackCapacity - allocatedToFrontend);
+                } else {
+                    allocatedToBackend = Math.min(backendShortfall, fullstackCapacity);
+                    allocatedToFrontend = Math.min(frontendShortfall, fullstackCapacity - allocatedToBackend);
+                }
+            }
+
+            const finalFrontendCapacity = frontendCapacity + allocatedToFrontend;
+            const finalBackendCapacity = backendCapacity + allocatedToBackend;
+
+            // Calculate totals
+            const totalRequired = requiredFrontend + requiredBackend;
+            const totalCapacityAvailable = frontendCapacity + backendCapacity + fullstackCapacity;
+            
+            // Total capacity includes both assigned and unassigned
+            const totalDeveloperCapacity = Object.values(devCapacity).reduce((sum, dev) => sum + dev.total, 0);
+
+            // Determine status and generate detailed reasons
+            const frontendStatus = unassignedFrontend <= finalFrontendCapacity ? 'ok' : 'error';
+            const backendStatus = unassignedBackend <= finalBackendCapacity ? 'ok' : 'error';
+            const overallStatus = totalRequired <= totalDeveloperCapacity && frontendStatus === 'ok' && backendStatus === 'ok' ? 'ok' : 'error';
+
+            // Calculate spare days
+            const totalSpare = totalDeveloperCapacity - totalRequired;
+            const frontendSpare = finalFrontendCapacity - unassignedFrontend;
+            const backendSpare = finalBackendCapacity - unassignedBackend;
+
+            // Build detailed exceeded reasons
+            let exceededReasons = [];
+            if (overallStatus === 'error') {
+                if (frontendStatus === 'error') {
+                    const shortage = unassignedFrontend - finalFrontendCapacity;
+                    exceededReasons.push(`<strong>Frontend:</strong> Need ${unassignedFrontend.toFixed(1)} days but only have ${finalFrontendCapacity.toFixed(1)} days available (short by ${shortage.toFixed(1)} days)`);
+                }
+                if (backendStatus === 'error') {
+                    const shortage = unassignedBackend - finalBackendCapacity;
+                    exceededReasons.push(`<strong>Backend:</strong> Need ${unassignedBackend.toFixed(1)} days but only have ${finalBackendCapacity.toFixed(1)} days available (short by ${shortage.toFixed(1)} days)`);
+                }
+                if (totalRequired > totalDeveloperCapacity && exceededReasons.length === 0) {
+                    const shortage = totalRequired - totalDeveloperCapacity;
+                    exceededReasons.push(`<strong>Total capacity:</strong> Need ${totalRequired.toFixed(1)} days but only have ${totalDeveloperCapacity.toFixed(1)} days available (short by ${shortage.toFixed(1)} days)`);
+                }
+            }
+
+            const fullstackDevs = developers.filter(d => d.type === 'both');
+            const assignedDevs = Object.values(devCapacity).filter(d => d.assigned.length > 0);
+
+            // Render results
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `
+                <div class="results">
+                    <h2>📊 Capacity Analysis</h2>
+                    
+                    <div class="result-card">
+                        <h3 style="margin-bottom: 15px; color: #212529;">Time Period</h3>
+                        <div class="result-row">
+                            <span class="result-label">Duration:</span>
+                            <span class="result-value">${displayText}</span>
+                        </div>
+                        ${includeBuffer ? `
+                        <div style="margin-top: 15px; padding: 12px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px;">
+                            <strong style="color: #856404;">🔧 Bug Fix / Maintenance Buffer Applied</strong><br>
+                            <span style="color: #856404; font-size: 13px;">
+                                • Total capacity before buffer: ${totalDeveloperCapacityBeforeBuffer.toFixed(1)} days<br>
+                                • Buffer reserved (20%): ${bufferDays.toFixed(1)} days<br>
+                                • Available for planned work: ${totalDeveloperCapacity.toFixed(1)} days<br>
+                                <br>
+                                <em>The buffer ensures your team has time for unexpected bugs, maintenance, and technical debt.</em>
+                            </span>
+                        </div>
+                        ` : `
+                        <div style="margin-top: 10px; padding: 10px; background: #e7f3ff; border-left: 3px solid #2196F3; border-radius: 4px; font-size: 13px;">
+                            <strong style="color: #1976d2;">ℹ️ Working Days Calculation:</strong><br>
+                            <span style="color: #1565c0;">
+                                Working days exclude weekends (Sat/Sun) and NSW public holidays for 2025.
+                            </span>
+                        </div>
+                        `}
+                    </div>
+
+                    ${assignedDevs.length > 0 ? `
+                    <div class="result-card">
+                        <h3 style="margin-bottom: 15px; color: #212529;">Assigned Tasks</h3>
+                        ${assignedDevs.map(dev => `
+                            <div style="margin-bottom: 15px;">
+                                <strong>${dev.name}</strong> <span class="badge badge-${dev.type}">${dev.type.toUpperCase()}</span>
+                                <div class="work-breakdown">
+                                    ${dev.assigned.map(task => `• ${task.name}: ${task.allocated.toFixed(1)} days used of ${task.days} days`).join('<br>')}
+                                    <br><strong>Remaining capacity: ${dev.remaining.toFixed(1)} days</strong>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ` : ''}
+
+                    <div class="result-card">
+                        <h3 style="margin-bottom: 15px; color: #212529;">Team Capacity</h3>
+                        <div class="result-row">
+                            <span class="result-label">Frontend Developers:</span>
+                            <span class="result-value">${developers.filter(d => d.type === 'frontend').length} (${frontendCapacity.toFixed(1)} days available for unassigned work)</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-label">Backend Developers:</span>
+                            <span class="result-value">${developers.filter(d => d.type === 'backend').length} (${backendCapacity.toFixed(1)} days available for unassigned work)</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-label">Fullstack Developers:</span>
+                            <span class="result-value">${fullstackDevs.length} (${fullstackCapacity.toFixed(1)} days available for unassigned work)</span>
+                        </div>
+                        ${allocatedToFrontend > 0 || allocatedToBackend > 0 ? `
+                        <div class="work-breakdown">
+                            <strong>Fullstack Allocation (for unassigned work):</strong><br>
+                            ${allocatedToFrontend > 0 ? `• ${allocatedToFrontend.toFixed(1)} days allocated to Frontend<br>` : ''}
+                            ${allocatedToBackend > 0 ? `• ${allocatedToBackend.toFixed(1)} days allocated to Backend<br>` : ''}
+                            ${fullstackCapacity - allocatedToFrontend - allocatedToBackend > 0 ? `• ${(fullstackCapacity - allocatedToFrontend - allocatedToBackend).toFixed(1)} days unused` : ''}
+                        </div>
+                        ` : ''}
+                        <div class="result-row" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e9ecef;">
+                            <span class="result-label">Total Team Capacity:</span>
+                            <span class="result-value"><strong>${totalDeveloperCapacity.toFixed(1)} days</strong> ${includeBuffer ? `<span style="color: #856404;">(after 20% buffer)</span>` : ''}</span>
+                        </div>
+                    </div>
+
+                    <div class="result-card">
+                        <h3 style="margin-bottom: 15px; color: #212529;">Work Required</h3>
+                        <div class="result-row">
+                            <span class="result-label">Total Frontend Work:</span>
+                            <span class="result-value">${requiredFrontend.toFixed(1)} days</span>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-label">Total Backend Work:</span>
+                            <span class="result-value">${requiredBackend.toFixed(1)} days</span>
+                        </div>
+                        <div class="result-row" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e9ecef;">
+                            <span class="result-label">Total Work Required:</span>
+                            <span class="result-value"><strong>${totalRequired.toFixed(1)} days</strong></span>
+                        </div>
+                        <div class="work-breakdown">
+                            <strong>Work Breakdown:</strong><br>
+                            ${workItems.map(w => {
+                                const assignee = w.assigneeId ? developers.find(d => d.id == w.assigneeId) : null;
+                                const assigneeText = assignee ? ` [Assigned to ${assignee.name}]` : '';
+                                return `• ${w.name}: ${sizeInDays[w.size]} days (FE: ${(sizeInDays[w.size] * w.frontend / 100).toFixed(1)}d, BE: ${(sizeInDays[w.size] * w.backend / 100).toFixed(1)}d)${assigneeText}`;
+                            }).join('<br>')}
+                        </div>
+                    </div>
+
+                    <div class="result-card" style="border-left-color: ${overallStatus === 'ok' ? '#28a745' : '#dc3545'};">
+                        <h3 style="margin-bottom: 15px; color: #212529;">Overall Assessment</h3>
+                        <div class="result-row">
+                            <span class="result-label">Unassigned Frontend Work Status:</span>
+                            <span class="status-${frontendStatus}">
+                                ${frontendStatus === 'ok' ? '✅ Sufficient' : '❌ Insufficient'} 
+                                (Need: ${unassignedFrontend.toFixed(1)}d, Have: ${finalFrontendCapacity.toFixed(1)}d)
+                            </span>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-label">Unassigned Backend Work Status:</span>
+                            <span class="status-${backendStatus}">
+                                ${backendStatus === 'ok' ? '✅ Sufficient' : '❌ Insufficient'} 
+                                (Need: ${unassignedBackend.toFixed(1)}d, Have: ${finalBackendCapacity.toFixed(1)}d)
+                            </span>
+                        </div>
+                        <div class="result-row" style="margin-top: 10px; padding-top: 10px; border-top: 1px solid #e9ecef;">
+                            <span class="result-label">Overall Status:</span>
+                            <span class="status-${overallStatus}" style="font-size: 16px;">
+                                ${overallStatus === 'ok' ? '✅ Team has sufficient capacity!' : '❌ Team capacity exceeded!'}
+                            </span>
+                        </div>
+                        <div class="result-row">
+                            <span class="result-label">Spare Capacity:</span>
+                            <span class="result-value">
+                                ${totalSpare >= 0 
+                                    ? `<strong style="color: #28a745;">+${totalSpare.toFixed(1)} days available</strong>` 
+                                    : `<strong style="color: #dc3545;">${totalSpare.toFixed(1)} days (overallocated)</strong>`
+                                }
+                                <br><span style="color: #6c757d; font-size: 14px;">Frontend: ${frontendSpare >= 0 ? '+' : ''}${frontendSpare.toFixed(1)}d | Backend: ${backendSpare >= 0 ? '+' : ''}${backendSpare.toFixed(1)}d</span>
+                            </span>
+                        </div>
+                        ${overallStatus !== 'ok' ? `
+                        <div class="work-breakdown">
+                            <strong style="color: #dc3545;">⚠️ Why Capacity is Exceeded:</strong><br>
+                            ${exceededReasons.join('<br>')}
+                            <br><br>
+                            <strong style="color: #dc3545;">💡 Recommendations:</strong><br>
+                            ${frontendStatus !== 'ok' ? `• Add ${Math.ceil((unassignedFrontend - finalFrontendCapacity) / (totalDays/developers.length))} more frontend developer(s)<br>` : ''}
+                            ${backendStatus !== 'ok' ? `• Add ${Math.ceil((unassignedBackend - finalBackendCapacity) / (totalDays/developers.length))} more backend developer(s)<br>` : ''}
+                            • Or reduce work scope by ${(totalRequired - totalDeveloperCapacity).toFixed(1)} days<br>
+                            • Or extend the timeline to accommodate the workload
+                            ${includeBuffer ? '<br>• Consider reducing or removing the 20% buffer if urgent' : ''}
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+
+            resultsDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    </script>
+</body>
+</html>
