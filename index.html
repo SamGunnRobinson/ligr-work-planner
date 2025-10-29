@@ -857,21 +857,45 @@
         const SUPABASE_URL = 'https://ivyndpwtwtgzbitkmoqs.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2eW5kcHd0d3RnemJpdGttb3FzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2ODYwNDgsImV4cCI6MjA3NzI2MjA0OH0.LsH1uMvCkkTFvJM5U7RE4JlxNBpWTmJ0wREetvU8pgM';
         
-        // Initialize Supabase client
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Supabase client - will be initialized when library loads
+        let supabase = null;
         
         let currentUser = null;
         let isOnlineMode = false;
 
         // Check authentication status on load
         async function checkAuthStatus() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (user) {
-                currentUser = user;
-                isOnlineMode = true;
-                updateUIForAuthState(true);
-                await loadWorkPlansFromSupabase();
-            } else {
+            try {
+                // Initialize Supabase client if not already done
+                if (!supabase && window.supabase) {
+                    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                }
+                
+                // Check if Supabase library loaded
+                if (!supabase) {
+                    console.error('Supabase library not loaded');
+                    showAuthModal();
+                    return;
+                }
+
+                const { data: { user }, error } = await supabase.auth.getUser();
+                
+                if (error) {
+                    console.error('Auth error:', error);
+                    showAuthModal();
+                    return;
+                }
+                
+                if (user) {
+                    currentUser = user;
+                    isOnlineMode = true;
+                    updateUIForAuthState(true);
+                    await loadWorkPlansFromSupabase();
+                } else {
+                    showAuthModal();
+                }
+            } catch (error) {
+                console.error('Error checking auth status:', error);
                 showAuthModal();
             }
         }
@@ -1508,7 +1532,7 @@
             document.getElementById('planName').value = '';
         }
 
-        function saveWorkPlan() {
+        async function saveWorkPlan() {
             const planName = document.getElementById('planName').value.trim();
             
             if (!planName) {
@@ -2034,9 +2058,25 @@
         }
 
         // Initialize on page load
-        window.addEventListener('DOMContentLoaded', function() {
+        window.addEventListener('DOMContentLoaded', async function() {
             updateSlider();
-            checkAuthStatus();
+            
+            // Wait for Supabase library to load
+            let attempts = 0;
+            const maxAttempts = 50; // 5 seconds max wait
+            
+            while (!window.supabase && attempts < maxAttempts) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
+            }
+            
+            if (window.supabase) {
+                await checkAuthStatus();
+            } else {
+                console.error('Supabase library failed to load');
+                alert('Failed to load cloud sync. Working in offline mode.');
+                continueOffline();
+            }
         });
 
         function calculateEstimate() {
