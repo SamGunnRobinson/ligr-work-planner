@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -910,15 +911,13 @@
         const SUPABASE_URL = 'https://ivyndpwtwtgzbitkmoqs.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2eW5kcHd0d3RnemJpdGttb3FzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2ODYwNDgsImV4cCI6MjA3NzI2MjA0OH0.LsH1uMvCkkTFvJM5U7RE4JlxNBpWTmJ0wREetvU8pgM';
         
-        // Admin Configuration
-        const ADMIN_USER_ID = '6f62161b-a0ba-49d0-8242-724225c5a507';
-        
         // Supabase client - will be initialized when library loads
         let supabase = null;
         
         let currentUser = null;
         let isOnlineMode = false;
         let isAdmin = false;
+        let userRole = 'user'; // Default role
 
         // Check authentication status on load
         async function checkAuthStatus() {
@@ -946,7 +945,7 @@
                 if (user) {
                     currentUser = user;
                     isOnlineMode = true;
-                    isAdmin = (user.id === ADMIN_USER_ID);
+                    await loadUserRole();
                     updateUIForAuthState(true);
                     await loadTaskSizingConfig();
                     await loadWorkPlansFromSupabase();
@@ -956,6 +955,44 @@
             } catch (error) {
                 console.error('Error checking auth status:', error);
                 showAuthModal();
+            }
+        }
+
+        // Load user role from database
+        async function loadUserRole() {
+            if (!isOnlineMode || !currentUser || !supabase) {
+                isAdmin = false;
+                userRole = 'user';
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('user_roles')
+                    .select('role')
+                    .eq('user_id', currentUser.id)
+                    .single();
+
+                if (error) {
+                    console.error('Error loading user role:', error);
+                    isAdmin = false;
+                    userRole = 'user';
+                    return;
+                }
+
+                if (data) {
+                    userRole = data.role;
+                    isAdmin = (data.role === 'admin');
+                    console.log('User role loaded:', userRole, 'Is admin:', isAdmin);
+                } else {
+                    // No role found, default to user
+                    isAdmin = false;
+                    userRole = 'user';
+                }
+            } catch (error) {
+                console.error('Error loading user role:', error);
+                isAdmin = false;
+                userRole = 'user';
             }
         }
 
@@ -1000,6 +1037,7 @@
             } else {
                 currentUser = data.user;
                 isOnlineMode = true;
+                await loadUserRole();
                 hideAuthModal();
                 updateUIForAuthState(true);
                 await syncLocalToCloud();
@@ -1048,6 +1086,8 @@
             if (!error) {
                 currentUser = null;
                 isOnlineMode = false;
+                isAdmin = false;
+                userRole = 'user';
                 updateUIForAuthState(false);
                 workPlans = [];
                 renderWorkPlans();
