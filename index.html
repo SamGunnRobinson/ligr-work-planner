@@ -960,21 +960,32 @@
 
         // Load user role from database
         async function loadUserRole() {
+            console.log('=== Loading User Role ===');
+            console.log('isOnlineMode:', isOnlineMode);
+            console.log('currentUser:', currentUser);
+            console.log('supabase:', supabase);
+            
             if (!isOnlineMode || !currentUser || !supabase) {
+                console.log('❌ Cannot load role: offline or no user');
                 isAdmin = false;
                 userRole = 'user';
                 return;
             }
 
             try {
+                console.log('Querying user_roles for user_id:', currentUser.id);
+                
                 const { data, error } = await supabase
                     .from('user_roles')
                     .select('role')
                     .eq('user_id', currentUser.id)
                     .single();
 
+                console.log('Query result - data:', data);
+                console.log('Query result - error:', error);
+
                 if (error) {
-                    console.error('Error loading user role:', error);
+                    console.error('❌ Error loading user role:', error);
                     isAdmin = false;
                     userRole = 'user';
                     return;
@@ -983,14 +994,15 @@
                 if (data) {
                     userRole = data.role;
                     isAdmin = (data.role === 'admin');
-                    console.log('User role loaded:', userRole, 'Is admin:', isAdmin);
+                    console.log('✅ User role loaded:', userRole);
+                    console.log('✅ Is admin:', isAdmin);
                 } else {
-                    // No role found, default to user
+                    console.log('⚠️ No role found for user, defaulting to user');
                     isAdmin = false;
                     userRole = 'user';
                 }
             } catch (error) {
-                console.error('Error loading user role:', error);
+                console.error('❌ Exception loading user role:', error);
                 isAdmin = false;
                 userRole = 'user';
             }
@@ -1113,11 +1125,18 @@
         }
 
         function updateUIForAuthState(isSignedIn) {
+            console.log('=== Updating UI for Auth State ===');
+            console.log('isSignedIn:', isSignedIn);
+            console.log('isAdmin:', isAdmin);
+            console.log('userRole:', userRole);
+            
             const syncStatus = document.getElementById('syncStatus');
             const userInfo = document.getElementById('userInfo');
             const userEmail = document.getElementById('userEmail');
             const shareToggleContainer = document.getElementById('shareToggleContainer');
             const adminSettingsBtn = document.getElementById('adminSettingsBtn');
+
+            console.log('adminSettingsBtn element:', adminSettingsBtn);
 
             if (isSignedIn && currentUser) {
                 syncStatus.className = 'sync-status synced';
@@ -1128,7 +1147,11 @@
                 
                 // Show admin button only for admin users
                 if (adminSettingsBtn) {
-                    adminSettingsBtn.style.display = isAdmin ? 'inline-block' : 'none';
+                    const shouldShow = isAdmin ? 'inline-block' : 'none';
+                    console.log('Setting admin button display to:', shouldShow);
+                    adminSettingsBtn.style.display = shouldShow;
+                } else {
+                    console.error('❌ adminSettingsBtn element not found!');
                 }
             } else {
                 syncStatus.className = 'sync-status offline';
@@ -1139,6 +1162,8 @@
                     adminSettingsBtn.style.display = 'none';
                 }
             }
+            
+            console.log('=== UI Update Complete ===');
         }
 
         // Admin Functions
@@ -1292,6 +1317,37 @@
             closeAdminSettings();
             updateSizeLabels();
         }
+
+        // Debug helper functions (can be called from console)
+        window.debugAdminStatus = function() {
+            console.log('=== ADMIN DEBUG INFO ===');
+            console.log('Current User:', currentUser);
+            console.log('User ID:', currentUser?.id);
+            console.log('User Role:', userRole);
+            console.log('Is Admin:', isAdmin);
+            console.log('Is Online:', isOnlineMode);
+            console.log('Admin Button Element:', document.getElementById('adminSettingsBtn'));
+            console.log('Admin Button Display:', document.getElementById('adminSettingsBtn')?.style.display);
+            
+            // Try to reload role
+            console.log('Reloading role from database...');
+            loadUserRole().then(() => {
+                console.log('Role reloaded. New values:');
+                console.log('User Role:', userRole);
+                console.log('Is Admin:', isAdmin);
+                updateUIForAuthState(true);
+            });
+        };
+
+        window.forceShowAdminButton = function() {
+            const btn = document.getElementById('adminSettingsBtn');
+            if (btn) {
+                btn.style.display = 'inline-block';
+                console.log('✅ Admin button forced visible');
+            } else {
+                console.error('❌ Admin button element not found');
+            }
+        };
 
         // Sync Functions
         async function syncLocalToCloud() {
