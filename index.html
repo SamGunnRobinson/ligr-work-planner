@@ -654,6 +654,7 @@
                 <div id="userInfo" style="display: none;">
                     <div class="user-info">
                         <span id="userEmail"></span>
+                        <button id="adminSettingsBtn" onclick="showAdminSettings()" class="btn-secondary" style="padding: 5px 10px; margin: 0 5px 0 0; width: auto; display: none;">⚙️ Admin Settings</button>
                         <button onclick="signOut()" class="btn-secondary" style="padding: 5px 10px; margin: 0; width: auto;">Sign Out</button>
                     </div>
                 </div>
@@ -852,16 +853,73 @@
         </div>
     </div>
 
+    <!-- Admin Settings Modal -->
+    <div id="adminSettingsModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <h3>⚙️ Admin Settings - Task Sizing Configuration</h3>
+            <p style="color: #6c757d; margin-bottom: 20px;">Configure the number of days for each task size. Changes apply to all future calculations.</p>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="form-group">
+                    <label>XS (Extra Small)</label>
+                    <input type="number" id="adminSizeXS" min="0.5" step="0.5" placeholder="Days">
+                    <small style="color: #6c757d;">Current: <span id="currentXS"></span> days</small>
+                </div>
+                <div class="form-group">
+                    <label>S (Small)</label>
+                    <input type="number" id="adminSizeS" min="0.5" step="0.5" placeholder="Days">
+                    <small style="color: #6c757d;">Current: <span id="currentS"></span> days</small>
+                </div>
+                <div class="form-group">
+                    <label>M (Medium)</label>
+                    <input type="number" id="adminSizeM" min="0.5" step="0.5" placeholder="Days">
+                    <small style="color: #6c757d;">Current: <span id="currentM"></span> days</small>
+                </div>
+                <div class="form-group">
+                    <label>L (Large)</label>
+                    <input type="number" id="adminSizeL" min="0.5" step="0.5" placeholder="Days">
+                    <small style="color: #6c757d;">Current: <span id="currentL"></span> days</small>
+                </div>
+                <div class="form-group">
+                    <label>XL (Extra Large)</label>
+                    <input type="number" id="adminSizeXL" min="0.5" step="0.5" placeholder="Days">
+                    <small style="color: #6c757d;">Current: <span id="currentXL"></span> days</small>
+                </div>
+                <div class="form-group">
+                    <label>XXL (Extra Extra Large)</label>
+                    <input type="number" id="adminSizeXXL" min="0.5" step="0.5" placeholder="Days">
+                    <small style="color: #6c757d;">Current: <span id="currentXXL"></span> days</small>
+                </div>
+            </div>
+
+            <div style="margin-top: 20px; padding: 15px; background: #fff3cd; border-left: 3px solid #ffc107; border-radius: 4px;">
+                <strong style="color: #856404;">⚠️ Important:</strong><br>
+                <span style="color: #856404; font-size: 14px;">
+                    Changing these values will affect all future calculations. Existing saved plans will recalculate when loaded.
+                </span>
+            </div>
+
+            <div class="modal-buttons">
+                <button onclick="closeAdminSettings()" class="btn-secondary">Cancel</button>
+                <button onclick="saveTaskSizingConfig()" class="btn-save">Save Configuration</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Supabase Configuration
         const SUPABASE_URL = 'https://ivyndpwtwtgzbitkmoqs.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2eW5kcHd0d3RnemJpdGttb3FzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE2ODYwNDgsImV4cCI6MjA3NzI2MjA0OH0.LsH1uMvCkkTFvJM5U7RE4JlxNBpWTmJ0wREetvU8pgM';
+        
+        // Admin Configuration
+        const ADMIN_USER_ID = '6f62161b-a0ba-49d0-8242-724225c5a507';
         
         // Supabase client - will be initialized when library loads
         let supabase = null;
         
         let currentUser = null;
         let isOnlineMode = false;
+        let isAdmin = false;
 
         // Check authentication status on load
         async function checkAuthStatus() {
@@ -889,7 +947,9 @@
                 if (user) {
                     currentUser = user;
                     isOnlineMode = true;
+                    isAdmin = (user.id === ADMIN_USER_ID);
                     updateUIForAuthState(true);
+                    await loadTaskSizingConfig();
                     await loadWorkPlansFromSupabase();
                 } else {
                     showAuthModal();
@@ -1018,6 +1078,7 @@
             const userInfo = document.getElementById('userInfo');
             const userEmail = document.getElementById('userEmail');
             const shareToggleContainer = document.getElementById('shareToggleContainer');
+            const adminSettingsBtn = document.getElementById('adminSettingsBtn');
 
             if (isSignedIn && currentUser) {
                 syncStatus.className = 'sync-status synced';
@@ -1025,12 +1086,172 @@
                 userInfo.style.display = 'block';
                 userEmail.textContent = currentUser.email;
                 shareToggleContainer.style.display = 'flex';
+                
+                // Show admin button only for admin users
+                if (adminSettingsBtn) {
+                    adminSettingsBtn.style.display = isAdmin ? 'inline-block' : 'none';
+                }
             } else {
                 syncStatus.className = 'sync-status offline';
                 syncStatus.innerHTML = '<span>●</span> Offline Mode';
                 userInfo.style.display = 'none';
                 shareToggleContainer.style.display = 'none';
+                if (adminSettingsBtn) {
+                    adminSettingsBtn.style.display = 'none';
+                }
             }
+        }
+
+        // Admin Functions
+        async function loadTaskSizingConfig() {
+            if (!isOnlineMode || !supabase) {
+                // Load from localStorage as fallback
+                const saved = localStorage.getItem('taskSizingConfig');
+                if (saved) {
+                    sizeInDays = JSON.parse(saved);
+                }
+                updateSizeLabels();
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase
+                    .from('admin_settings')
+                    .select('*')
+                    .eq('setting_key', 'task_sizing')
+                    .single();
+
+                if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
+                    console.error('Error loading task sizing config:', error);
+                    return;
+                }
+
+                if (data && data.setting_value) {
+                    sizeInDays = data.setting_value;
+                    // Also save to localStorage
+                    localStorage.setItem('taskSizingConfig', JSON.stringify(sizeInDays));
+                }
+            } catch (error) {
+                console.error('Error loading task sizing config:', error);
+            }
+            
+            updateSizeLabels();
+        }
+
+        function updateSizeLabels() {
+            // Update the size selector dropdown with current configured days
+            const sizeSelect = document.getElementById('workSize');
+            if (sizeSelect) {
+                sizeSelect.innerHTML = `
+                    <option value="XS">XS (${sizeInDays.XS} days)</option>
+                    <option value="S">S (${sizeInDays.S} days)</option>
+                    <option value="M">M (${sizeInDays.M} days)</option>
+                    <option value="L">L (${sizeInDays.L} days)</option>
+                    <option value="XL">XL (${sizeInDays.XL} days)</option>
+                    <option value="XXL">XXL (${sizeInDays.XXL} days)</option>
+                `;
+            }
+        }
+
+        function showAdminSettings() {
+            if (!isAdmin) {
+                alert('You do not have permission to access admin settings.');
+                return;
+            }
+
+            // Populate current values
+            document.getElementById('currentXS').textContent = sizeInDays.XS;
+            document.getElementById('currentS').textContent = sizeInDays.S;
+            document.getElementById('currentM').textContent = sizeInDays.M;
+            document.getElementById('currentL').textContent = sizeInDays.L;
+            document.getElementById('currentXL').textContent = sizeInDays.XL;
+            document.getElementById('currentXXL').textContent = sizeInDays.XXL;
+
+            // Set input values
+            document.getElementById('adminSizeXS').value = sizeInDays.XS;
+            document.getElementById('adminSizeS').value = sizeInDays.S;
+            document.getElementById('adminSizeM').value = sizeInDays.M;
+            document.getElementById('adminSizeL').value = sizeInDays.L;
+            document.getElementById('adminSizeXL').value = sizeInDays.XL;
+            document.getElementById('adminSizeXXL').value = sizeInDays.XXL;
+
+            document.getElementById('adminSettingsModal').classList.add('show');
+        }
+
+        function closeAdminSettings() {
+            document.getElementById('adminSettingsModal').classList.remove('show');
+        }
+
+        async function saveTaskSizingConfig() {
+            if (!isAdmin) {
+                alert('You do not have permission to save admin settings.');
+                return;
+            }
+
+            // Get new values
+            const newConfig = {
+                XS: parseFloat(document.getElementById('adminSizeXS').value),
+                S: parseFloat(document.getElementById('adminSizeS').value),
+                M: parseFloat(document.getElementById('adminSizeM').value),
+                L: parseFloat(document.getElementById('adminSizeL').value),
+                XL: parseFloat(document.getElementById('adminSizeXL').value),
+                XXL: parseFloat(document.getElementById('adminSizeXXL').value)
+            };
+
+            // Validate
+            for (const [key, value] of Object.entries(newConfig)) {
+                if (isNaN(value) || value <= 0) {
+                    alert(`Invalid value for ${key}. Please enter a positive number.`);
+                    return;
+                }
+            }
+
+            // Update local config
+            sizeInDays = newConfig;
+
+            // Save to localStorage
+            localStorage.setItem('taskSizingConfig', JSON.stringify(sizeInDays));
+
+            // Save to Supabase if online
+            if (isOnlineMode && supabase) {
+                try {
+                    const { error } = await supabase
+                        .from('admin_settings')
+                        .upsert({
+                            setting_key: 'task_sizing',
+                            setting_value: newConfig,
+                            updated_by: currentUser.id,
+                            updated_at: new Date().toISOString()
+                        });
+
+                    if (error) {
+                        console.error('Error saving to Supabase:', error);
+                        alert('Configuration saved locally but failed to sync to cloud. Check console for details.');
+                    } else {
+                        alert('Task sizing configuration saved successfully!\n\nNew values:\n' +
+                            `XS: ${newConfig.XS} days\n` +
+                            `S: ${newConfig.S} days\n` +
+                            `M: ${newConfig.M} days\n` +
+                            `L: ${newConfig.L} days\n` +
+                            `XL: ${newConfig.XL} days\n` +
+                            `XXL: ${newConfig.XXL} days`);
+                    }
+                } catch (error) {
+                    console.error('Error saving task sizing config:', error);
+                    alert('Configuration saved locally but failed to sync to cloud.');
+                }
+            } else {
+                alert('Task sizing configuration saved locally!\n\nNew values:\n' +
+                    `XS: ${newConfig.XS} days\n` +
+                    `S: ${newConfig.S} days\n` +
+                    `M: ${newConfig.M} days\n` +
+                    `L: ${newConfig.L} days\n` +
+                    `XL: ${newConfig.XL} days\n` +
+                    `XXL: ${newConfig.XXL} days`);
+            }
+
+            closeAdminSettings();
+            updateSizeLabels();
         }
 
         // Sync Functions
@@ -1152,7 +1373,8 @@
         let currentPlanId = null;
         let renamingPlanId = null;
 
-        const sizeInDays = {
+        // Task sizing configuration (can be customized by admin)
+        let sizeInDays = {
             'XS': 2,
             'S': 5,
             'M': 10,
