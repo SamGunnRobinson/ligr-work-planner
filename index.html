@@ -1316,6 +1316,172 @@
 
             closeAdminSettings();
             updateSizeLabels();
+            
+            // Recalculate all loaded plans with new sizing
+            if (workPlans.length > 0) {
+                console.log('Recalculating', workPlans.length, 'plans with new sizing...');
+                recalculateAllPlans();
+                renderWorkPlans();
+                
+                // If currently viewing a plan, recalculate its display
+                if (currentPlanId) {
+                    const currentPlan = workPlans.find(p => p.id === currentPlanId);
+                    if (currentPlan) {
+                        // Trigger recalculation by reloading the plan
+                        calculateEstimate();
+                    }
+                }
+            }
+        }
+
+        // Recalculate all plan summaries with current sizing
+        function recalculateAllPlans() {
+            workPlans.forEach(plan => {
+                // Recalculate the summary with new sizing
+                const summary = calculatePlanSummary(plan);
+                plan.summary = summary;
+            });
+            
+            // Save updated plans
+            if (isOnlineMode && currentUser) {
+                // Save all plans back to Supabase
+                workPlans.forEach(plan => {
+                    saveWorkPlanToSupabase(plan);
+                });
+            } else {
+                saveToLocalStorage();
+            }
+        }
+
+        // Calculate plan summary (extracted from saveWorkPlan logic)
+        function calculatePlanSummary(plan) {
+            const periodType = plan.period_type || plan.periodType;
+            let totalDays;
+            let displayText;
+
+            if (periodType === 'duration') {
+                const duration = parseInt(plan.duration);
+                const unit = plan.duration_unit || plan.durationUnit;
+                totalDays = calculateWorkingDaysInDuration(duration, unit);
+                displayText = `${duration} ${unit} (${totalDays} working days)`;
+            } else {
+                const startDate = plan.start_date || plan.startDate;
+                const endDate = plan.end_date || plan.endDate;
+                if (startDate && endDate) {
+                    totalDays = calculateWorkingDays(startDate, endDate);
+                    displayText = `${startDate} to ${endDate} (${totalDays} working days)`;
+                } else {
+                    totalDays = 0;
+                    displayText = 'No dates set';
+                }
+            }
+
+            // Calculate team capacity
+            let totalDeveloperCapacity = 0;
+            let frontendCapacity = 0;
+            let backendCapacity = 0;
+            let fullstackCapacity = 0;
+
+            plan.developers.forEach(dev => {
+                const availableDays = Math.max(0, totalDays - dev.holiday);
+                totalDeveloperCapacity += availableDays;
+                
+                if (dev.type === 'frontend') {
+                    frontendCapacity += availableDays;
+                } else if (dev.type === 'backend') {
+                    backendCapacity += availableDays;
+                } else {
+                    fullstackCapacity += availableDays;
+                }
+            });
+
+            // Apply buffer if enabled
+            const includeBuffer = plan.include_buffer || plan.includeBuffer || false;
+            let bufferDays = 0;
+            let adjustedTotalCapacity = totalDeveloperCapacity;
+            let adjustedFrontendCapacity = frontendCapacity;
+            let adjustedBackendCapacity = backendCapacity;
+            let adjustedFullstackCapacity = fullstackCapacity;
+
+            if (includeBuffer) {
+                bufferDays = totalDeveloperCapacity * 0.2;
+                adjustedTotalCapacity = totalDeveloperCapacity * 0.8;
+                adjustedFrontendCapacity = frontendCapacity * 0.8;
+                adjustedBackendCapacity = backendCapacity * 0.8;
+                adjustedFullstackCapacity = fullstackCapacity * 0.8;
+            }
+
+            // Calculate work required - THIS NOW USES CURRENT sizeInDays
+            let requiredFrontend = 0;
+            let requiredBackend = 0;
+            let totalRequired = 0;
+
+            const workItems = plan.work_items || plan.workItems || [];
+            workItems.forEach(work => {
+                const days = sizeInDays[work.size]; // Uses current configuration!
+                requiredFrontend += days * (work.frontend / 100);
+                requiredBackend += days * (work.backend / 100);
+                totalRequired += days;
+            });
+
+            // Calculate unassigned work
+            let unassignedFrontend = 0;
+            let unassignedBackend = 0;
+
+            workItems.forEach(work => {
+                const days = sizeInDays[work.size]; // Uses current configuration!
+                const frontendDays = days * (work.frontend / 100);
+                const backendDays = days * (work.backend / 100);
+                
+                if (!work.assigneeId) {
+                    unassignedFrontend += frontendDays;
+                    unassignedBackend += backendDays;
+                }
+            });
+
+            // Determine capacity status and reasons
+            const frontendShortfall = unassignedFrontend - (adjustedFrontendCapacity + adjustedFullstackCapacity);
+            const backendShortfall = unassignedBackend - (adjustedBackendCapacity + adjustedFullstackCapacity);
+            const totalShortfall = totalRequired - adjustedTotalCapacity;
+            
+            // Calculate spare days
+            const totalSpare = adjustedTotalCapacity - totalRequired;
+            const frontendSpare = (adjustedFrontendCapacity + adjustedFullstackCapacity) - unassignedFrontend;
+            const backendSpare = (adjustedBackendCapacity + adjustedFullstackCapacity) - unassignedBackend;
+
+            let capacityExceededReasons = [];
+            
+            if (frontendShortfall > 0) {
+                capacityExceededReasons.push(`Frontend work exceeds capacity by ${frontendShortfall.toFixed(1)} days`);
+            }
+            if (backendShortfall > 0) {
+                capacityExceededReasons.push(`Backend work exceeds capacity by ${backendShortfall.toFixed(1)} days`);
+            }
+            if (totalShortfall > 0 && capacityExceededReasons.length === 0) {
+                capacityExceededReasons.push(`Total work exceeds capacity by ${totalShortfall.toFixed(1)} days`);
+            }
+
+            return {
+                timePeriod: displayText,
+                totalCapacity: totalDeveloperCapacity,
+                adjustedTotalCapacity: adjustedTotalCapacity,
+                frontendCapacity: frontendCapacity,
+                backendCapacity: backendCapacity,
+                fullstackCapacity: fullstackCapacity,
+                adjustedFrontendCapacity: adjustedFrontendCapacity,
+                adjustedBackendCapacity: adjustedBackendCapacity,
+                adjustedFullstackCapacity: adjustedFullstackCapacity,
+                bufferDays: bufferDays,
+                totalRequired: totalRequired,
+                requiredFrontend: requiredFrontend,
+                requiredBackend: requiredBackend,
+                unassignedFrontend: unassignedFrontend,
+                unassignedBackend: unassignedBackend,
+                totalSpare: totalSpare,
+                frontendSpare: frontendSpare,
+                backendSpare: backendSpare,
+                capacityExceededReasons: capacityExceededReasons
+            };
         }
 
         // Debug helper functions (can be called from console)
@@ -1387,6 +1553,11 @@
                 if (sharedError) throw sharedError;
 
                 workPlans = [...(ownPlans || []), ...(sharedPlans || [])];
+                
+                // Recalculate all plans with current sizing
+                // (in case sizing changed since they were saved)
+                recalculateAllPlans();
+                
                 renderWorkPlans();
             } catch (error) {
                 console.error('Error loading plans from Supabase:', error);
