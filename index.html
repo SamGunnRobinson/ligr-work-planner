@@ -361,6 +361,10 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
 
         .work-plan-header h2 {
@@ -382,6 +386,85 @@
 
         .work-plan-list {
             margin-bottom: 20px;
+        }
+
+        /* Drag and Drop Styles */
+        .work-plan-item {
+            cursor: move;
+            transition: all 0.3s ease;
+        }
+
+        .work-plan-item.dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+
+        .work-plan-item.drag-over {
+            border-top: 3px solid #667eea;
+        }
+
+        /* Work Items Display in Plan Summary */
+        .plan-work-items {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 3px solid #667eea;
+        }
+
+        .plan-work-items-header {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .work-item-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr;
+            gap: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            font-size: 13px;
+            align-items: center;
+        }
+
+        .work-item-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .work-item-name {
+            font-weight: 500;
+            color: #212529;
+        }
+
+        .work-item-size {
+            background: #e7f3ff;
+            color: #1976d2;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+            text-align: center;
+            font-size: 12px;
+        }
+
+        .work-item-split {
+            color: #6c757d;
+            font-size: 12px;
+        }
+
+        .work-item-assignee {
+            color: #28a745;
+            font-weight: 500;
+            font-size: 12px;
+        }
+
+        .user-email-display {
+            font-weight: 600;
+            color: #667eea;
+            margin-right: 8px;
         }
 
         .work-plan-item {
@@ -653,7 +736,7 @@
                 </div>
                 <div id="userInfo" style="display: none;">
                     <div class="user-info">
-                        <span id="userEmail"></span>
+                        <span id="userEmail" class="user-email-display"></span>
                         <button id="adminSettingsBtn" onclick="showAdminSettings()" class="btn-secondary" style="padding: 5px 10px; margin: 0 5px 0 0; width: auto; display: none;">⚙️ Admin Settings</button>
                         <button onclick="signOut()" class="btn-secondary" style="padding: 5px 10px; margin: 0; width: auto;">Sign Out</button>
                     </div>
@@ -1335,21 +1418,35 @@
         }
 
         // Recalculate all plan summaries with current sizing
-        function recalculateAllPlans() {
+        async function recalculateAllPlans() {
+            console.log('Recalculating all plans with new sizing...');
+            
+            const plansToUpdate = [];
+            
             workPlans.forEach(plan => {
                 // Recalculate the summary with new sizing
                 const summary = calculatePlanSummary(plan);
                 plan.summary = summary;
+                
+                // If user owns this plan, queue it for database update
+                if (currentUser && plan.user_id === currentUser.id) {
+                    plansToUpdate.push(plan);
+                }
             });
             
-            // Save updated plans
-            if (isOnlineMode && currentUser) {
-                // Save all plans back to Supabase
-                workPlans.forEach(plan => {
-                    saveWorkPlanToSupabase(plan);
-                });
-            } else {
+            // Save updated plans to database
+            if (isOnlineMode && currentUser && plansToUpdate.length > 0) {
+                console.log('Updating', plansToUpdate.length, 'plans in database...');
+                
+                // Update all owned plans in parallel
+                const updatePromises = plansToUpdate.map(plan => saveWorkPlanToSupabase(plan));
+                await Promise.all(updatePromises);
+                
+                console.log('✅ All plans updated in database');
+            } else if (plansToUpdate.length > 0) {
+                // Offline mode - save to localStorage
                 saveToLocalStorage();
+                console.log('✅ Plans updated in localStorage');
             }
         }
 
@@ -2361,8 +2458,9 @@
                 const isOwner = currentUser && plan.user_id === currentUser.id;
                 const isShared = plan.is_shared || false;
                 
-                // Get summary data
-                const summary = plan.summary || {};
+                // RECALCULATE summary with current task sizing
+                const summary = calculatePlanSummary(plan);
+                
                 const hasCapacity = summary.totalCapacity !== undefined;
                 const includeBuffer = plan.include_buffer || plan.includeBuffer || false;
                 
@@ -2408,7 +2506,16 @@
                 ) : 'N/A';
                 
                 return `
-                    <div class="work-plan-item ${isActive ? 'active' : ''}" onclick="loadWorkPlan(${plan.id})">
+                    <div class="work-plan-item ${isActive ? 'active' : ''}" 
+                         draggable="true" 
+                         data-plan-id="${plan.id}"
+                         onclick="loadWorkPlan(${plan.id})"
+                         ondragstart="handleDragStart(event)"
+                         ondragover="handleDragOver(event)"
+                         ondragenter="handleDragEnter(event)"
+                         ondragleave="handleDragLeave(event)"
+                         ondrop="handleDrop(event)"
+                         ondragend="handleDragEnd(event)">
                         <div class="work-plan-info">
                             <div class="work-plan-name">
                                 ${plan.name} ${isActive ? '✓' : ''}
@@ -2455,6 +2562,23 @@
                                     ${exceededReasons}
                                 </div>
                             ` : ''}
+                            
+                            <!-- Work Items List -->
+                            <div class="plan-work-items">
+                                <div class="plan-work-items-header">📋 Work Items (${(plan.work_items || plan.workItems || []).length})</div>
+                                ${(plan.work_items || plan.workItems || []).map(item => {
+                                    const assignee = plan.developers.find(d => d.id == item.assigneeId);
+                                    const sizeDays = sizeInDays[item.size];
+                                    return `
+                                        <div class="work-item-row">
+                                            <div class="work-item-name">${item.name}</div>
+                                            <div class="work-item-size">${item.size} (${sizeDays}d)</div>
+                                            <div class="work-item-split">${item.frontend}% FE / ${item.backend}% BE</div>
+                                            <div class="work-item-assignee">${assignee ? '👤 ' + assignee.name : '⚪ Unassigned'}</div>
+                                        </div>
+                                    `;
+                                }).join('')}
+                            </div>
                         </div>
                         <div class="work-plan-actions" onclick="event.stopPropagation()">
                             ${isOwner ? `
@@ -2468,6 +2592,96 @@
                     </div>
                 `;
             }).join('');
+            
+            // After rendering, set up drag and drop event listeners
+            setupPlanDragAndDrop();
+        }
+
+        // Drag and Drop Functions
+        let draggedPlanId = null;
+
+        function setupPlanDragAndDrop() {
+            // Event listeners are already in the HTML via inline handlers
+            // This function can be used for additional setup if needed
+        }
+
+        function handleDragStart(event) {
+            draggedPlanId = event.target.getAttribute('data-plan-id');
+            event.target.classList.add('dragging');
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('text/html', event.target.innerHTML);
+        }
+
+        function handleDragOver(event) {
+            if (event.preventDefault) {
+                event.preventDefault();
+            }
+            event.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+
+        function handleDragEnter(event) {
+            const target = event.target.closest('.work-plan-item');
+            if (target && target.getAttribute('data-plan-id') !== draggedPlanId) {
+                target.classList.add('drag-over');
+            }
+        }
+
+        function handleDragLeave(event) {
+            const target = event.target.closest('.work-plan-item');
+            if (target) {
+                target.classList.remove('drag-over');
+            }
+        }
+
+        function handleDrop(event) {
+            if (event.stopPropagation) {
+                event.stopPropagation();
+            }
+            
+            const target = event.target.closest('.work-plan-item');
+            if (!target) return false;
+            
+            const targetPlanId = target.getAttribute('data-plan-id');
+            
+            if (draggedPlanId !== targetPlanId) {
+                // Find indices
+                const draggedIndex = workPlans.findIndex(p => p.id == draggedPlanId);
+                const targetIndex = workPlans.findIndex(p => p.id == targetPlanId);
+                
+                if (draggedIndex !== -1 && targetIndex !== -1) {
+                    // Reorder array
+                    const draggedPlan = workPlans[draggedIndex];
+                    workPlans.splice(draggedIndex, 1);
+                    workPlans.splice(targetIndex, 0, draggedPlan);
+                    
+                    // Save to storage
+                    if (isOnlineMode && currentUser) {
+                        // For cloud storage, we don't have a order field yet
+                        // So just save to localStorage for now
+                        saveToLocalStorage();
+                    } else {
+                        saveToLocalStorage();
+                    }
+                    
+                    // Re-render
+                    renderWorkPlans();
+                }
+            }
+            
+            target.classList.remove('drag-over');
+            return false;
+        }
+
+        function handleDragEnd(event) {
+            event.target.classList.remove('dragging');
+            
+            // Remove drag-over from all items
+            document.querySelectorAll('.work-plan-item').forEach(item => {
+                item.classList.remove('drag-over');
+            });
+            
+            draggedPlanId = null;
         }
 
         function exportWorkPlans() {
