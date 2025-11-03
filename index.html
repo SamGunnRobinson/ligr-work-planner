@@ -26,7 +26,7 @@
             background: white;
             border-radius: 12px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            overflow: hidden;
+            overflow: visible;
         }
 
         .header {
@@ -406,17 +406,52 @@
         /* Work Items Display in Plan Summary */
         .plan-work-items {
             margin-top: 15px;
-            padding: 15px;
+            padding: 0;
             background: #f8f9fa;
             border-radius: 8px;
             border-left: 3px solid #667eea;
+            overflow: hidden;
         }
 
         .plan-work-items-header {
             font-weight: 600;
             color: #495057;
-            margin-bottom: 10px;
+            padding: 12px 15px;
             font-size: 14px;
+            cursor: pointer;
+            user-select: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #e9ecef;
+            transition: background 0.2s;
+        }
+
+        .plan-work-items-header:hover {
+            background: #dee2e6;
+        }
+
+        .plan-work-items-toggle {
+            font-size: 12px;
+            color: #667eea;
+            transition: transform 0.3s;
+        }
+
+        .plan-work-items-toggle.expanded {
+            transform: rotate(180deg);
+        }
+
+        .plan-work-items-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+            padding: 0 15px;
+        }
+
+        .plan-work-items-content.expanded {
+            max-height: 2000px;
+            padding: 15px;
+            transition: max-height 0.5s ease-in;
         }
 
         .work-item-row {
@@ -2565,19 +2600,24 @@
                             
                             <!-- Work Items List -->
                             <div class="plan-work-items">
-                                <div class="plan-work-items-header">📋 Work Items (${(plan.work_items || plan.workItems || []).length})</div>
-                                ${(plan.work_items || plan.workItems || []).map(item => {
-                                    const assignee = plan.developers.find(d => d.id == item.assigneeId);
-                                    const sizeDays = sizeInDays[item.size];
-                                    return `
-                                        <div class="work-item-row">
-                                            <div class="work-item-name">${item.name}</div>
-                                            <div class="work-item-size">${item.size} (${sizeDays}d)</div>
-                                            <div class="work-item-split">${item.frontend}% FE / ${item.backend}% BE</div>
-                                            <div class="work-item-assignee">${assignee ? '👤 ' + assignee.name : '⚪ Unassigned'}</div>
-                                        </div>
-                                    `;
-                                }).join('')}
+                                <div class="plan-work-items-header" onclick="event.stopPropagation(); toggleWorkItems(${plan.id})">
+                                    <span>📋 Work Items (${(plan.work_items || plan.workItems || []).length})</span>
+                                    <span class="plan-work-items-toggle" id="toggle-${plan.id}">▼</span>
+                                </div>
+                                <div class="plan-work-items-content" id="work-items-${plan.id}">
+                                    ${(plan.work_items || plan.workItems || []).map(item => {
+                                        const assignee = plan.developers.find(d => d.id == item.assigneeId);
+                                        const sizeDays = sizeInDays[item.size];
+                                        return `
+                                            <div class="work-item-row">
+                                                <div class="work-item-name">${item.name}</div>
+                                                <div class="work-item-size">${item.size} (${sizeDays}d)</div>
+                                                <div class="work-item-split">${item.frontend}% FE / ${item.backend}% BE</div>
+                                                <div class="work-item-assignee">${assignee ? '👤 ' + assignee.name : '⚪ Unassigned'}</div>
+                                            </div>
+                                        `;
+                                    }).join('')}
+                                </div>
                             </div>
                         </div>
                         <div class="work-plan-actions" onclick="event.stopPropagation()">
@@ -2682,6 +2722,17 @@
             });
             
             draggedPlanId = null;
+        }
+
+        // Toggle work items visibility
+        function toggleWorkItems(planId) {
+            const content = document.getElementById(`work-items-${planId}`);
+            const toggle = document.getElementById(`toggle-${planId}`);
+            
+            if (content && toggle) {
+                content.classList.toggle('expanded');
+                toggle.classList.toggle('expanded');
+            }
         }
 
         function exportWorkPlans() {
